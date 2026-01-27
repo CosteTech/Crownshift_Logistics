@@ -1,15 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Protected routes that require authentication
-const protectedRoutes = ['/admin', '/services', '/reviews/submit'];
+const protectedRoutes = ['/admin'];
+
+// Routes that should not have middleware applied
+const excludedPaths = [
+  '/_next/',
+  '/api/',
+  '/public/',
+  '/favicon.ico',
+  '/robots.txt',
+  '/.well-known/',
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Skip middleware for excluded paths
+  if (excludedPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
   // Check if the current route is protected
-  const isProtectedRoute = protectedRoutes.some(route =>
-    pathname.startsWith(route)
-  );
+  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (isProtectedRoute) {
     // Check for session token in cookies (__session is used by Firebase Admin SDK verification)
@@ -36,7 +49,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public (public assets)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|public).*)',
   ],
 };

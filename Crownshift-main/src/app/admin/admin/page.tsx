@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Truck, Star } from 'lucide-react';
 import ServicesForm from '@/components/admin/services-form';
+import FAQsForm from '@/components/admin/faqs-form';
 import OffersForm from '@/components/admin/offers-form';
 import ReviewsApprovalForm from '@/components/admin/reviews-approval-form';
 
@@ -116,8 +117,9 @@ export default async function AdminDashboard() {
 
         {/* Management Tabs */}
         <Tabs defaultValue="services" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="services">Services</TabsTrigger>
+            <TabsTrigger value="faqs">FAQs</TabsTrigger>
             <TabsTrigger value="offers">Offers</TabsTrigger>
             <TabsTrigger value="reviews">Reviews</TabsTrigger>
           </TabsList>
@@ -130,6 +132,18 @@ export default async function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <ServicesForm />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="faqs" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage FAQs</CardTitle>
+                <CardDescription>Create, edit, or delete frequently asked questions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <FAQsForm />
               </CardContent>
             </Card>
           </TabsContent>

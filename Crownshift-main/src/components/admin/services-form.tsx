@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { getServices, addService, updateService, deleteService } from '@/app/actions';
+import { isServiceDeletable, isDefaultService } from '@/lib/data-models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -245,6 +246,11 @@ export default function ServicesForm({ onSuccess }: ServicesFormProps) {
                           Featured
                         </span>
                       )}
+                      {isDefaultService(service.id) && (
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          Default
+                        </span>
+                      )}
                     </h3>
                     <p className="text-sm text-muted-foreground">${service.price.toFixed(2)}</p>
                   </div>
@@ -260,6 +266,8 @@ export default function ServicesForm({ onSuccess }: ServicesFormProps) {
                       variant="destructive"
                       size="sm"
                       onClick={() => handleDelete(service.id)}
+                      disabled={!isServiceDeletable(service.id)}
+                      title={!isServiceDeletable(service.id) ? 'Default services cannot be deleted' : ''}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

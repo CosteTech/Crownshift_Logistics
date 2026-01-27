@@ -7,6 +7,7 @@ import { generateInstantQuote } from '@/ai/flows/instant-quote-generation';
 import { z } from 'zod';
 import { getFirestoreAdmin } from '@/firebase/server-init';
 import { FieldValue } from 'firebase-admin/firestore';
+import { isServiceDeletable, isFAQDeletable, isDefaultService, isDefaultFAQ } from '@/lib/data-models';
 
 // ==================== AUTH ====================
 export async function logoutAction() {
@@ -17,6 +18,53 @@ export async function logoutAction() {
   
   // Redirect to home page
   redirect('/');
+}
+
+// Create or update user profile after authentication
+export async function createUserProfile(userId: string, data: {
+  email: string;
+  fullName?: string;
+  role?: 'admin' | 'client';
+  company?: string;
+}) {
+  try {
+    const db = await getFirestoreAdmin();
+    const userRef = db.collection('users').doc(userId);
+    
+    await userRef.set(
+      {
+        email: data.email,
+        fullName: data.fullName || '',
+        role: data.role || 'client',
+        company: data.company || '',
+        updatedAt: new Date(),
+        createdAt: (await userRef.get()).exists ? undefined : new Date(),
+      },
+      { merge: true }
+    );
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    return { success: false, error: 'Failed to create user profile' };
+  }
+}
+
+// Get user profile (with role information)
+export async function getUserProfile(userId: string) {
+  try {
+    const db = await getFirestoreAdmin();
+    const doc = await db.collection('users').doc(userId).get();
+    
+    if (!doc.exists) {
+      return { success: false, error: 'User profile not found' };
+    }
+    
+    return { success: true, data: doc.data() };
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return { success: false, error: 'Failed to fetch user profile' };
+  }
 }
 
 const QuoteSchema = z.object({
@@ -137,6 +185,14 @@ export async function updateService(
 
 export async function deleteService(id: string) {
   try {
+    // Prevent deletion of default services
+    if (!isServiceDeletable(id)) {
+      return { 
+        success: false, 
+        error: 'Default services cannot be deleted. You can hide them or edit their details.' 
+      };
+    }
+
     const db = await getFirestoreAdmin();
     await db.collection('services').doc(id).delete();
     return { success: true };
@@ -333,6 +389,114 @@ export async function rejectReview(id: string) {
   } catch (error) {
     console.error('Error details:', error instanceof Error ? error.message : error);
     return { success: false, error: 'Failed to reject review' };
+  }
+}
+
+// ==================== FAQs ====================
+export async function getFAQs() {
+  try {
+    const db = await getFirestoreAdmin();
+    const snapshot = await db.collection('faqs').orderBy('order').get();
+    const faqs: any[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      faqs.push({ 
+        id: doc.id,
+        ...data,
+        isDefault: data.isDefault || false,
+        isVisible: data.isVisible !== false,
+      });
+    });
+    return { success: true, data: faqs };
+  } catch (error) {
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    return { success: false, error: 'Failed to fetch FAQs' };
+  }
+}
+
+export async function addFAQ(data: {
+  question: string;
+  answer: string;
+}) {
+  try {
+    const db = await getFirestoreAdmin();
+    
+    // Generate slug from question
+    const slug = data.question
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .replace(/\s+/g, '-')
+      .substring(0, 50);
+
+    // Get the highest order number
+    const snapshot = await db.collection('faqs').orderBy('order', 'desc').limit(1).get();
+    const maxOrder = snapshot.empty ? 0 : (snapshot.docs[0].data().order || 0);
+
+    const newDocRef = await db.collection('faqs').add({
+      question: data.question,
+      answer: data.answer,
+      slug: slug,
+      isDefault: false,
+      isVisible: true,
+      order: maxOrder + 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    return { success: true, id: newDocRef.id };
+  } catch (error) {
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    return { success: false, error: 'Failed to create FAQ' };
+  }
+}
+
+export async function updateFAQ(id: string, data: {
+  question?: string;
+  answer?: string;
+  isVisible?: boolean;
+  order?: number;
+}) {
+  try {
+    const db = await getFirestoreAdmin();
+    
+    const updateData: any = {
+      ...data,
+      updatedAt: new Date(),
+    };
+
+    // If question changes, update slug
+    if (data.question) {
+      updateData.slug = data.question
+        .toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, '-')
+        .substring(0, 50);
+    }
+
+    await db.collection('faqs').doc(id).update(updateData);
+    return { success: true };
+  } catch (error) {
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    return { success: false, error: 'Failed to update FAQ' };
+  }
+}
+
+export async function deleteFAQ(id: string) {
+  try {
+    // Prevent deletion of default FAQs
+    if (!isFAQDeletable(id)) {
+      return { 
+        success: false, 
+        error: 'Default FAQs cannot be deleted. You can hide them or edit their content.' 
+      };
+    }
+
+    const db = await getFirestoreAdmin();
+    await db.collection('faqs').doc(id).delete();
+    return { success: true };
+  } catch (error) {
+    console.error('Error details:', error instanceof Error ? error.message : error);
+    return { success: false, error: 'Failed to delete FAQ' };
   }
 }
 

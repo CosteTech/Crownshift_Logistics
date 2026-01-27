@@ -32,6 +32,9 @@ export default function LoginForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [role, setRole] = useState<'client' | 'admin'>('client');
+  const [company, setCompany] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Initialize Firebase to get auth instance
@@ -72,11 +75,32 @@ export default function LoginForm() {
           description: 'Logged in successfully',
         });
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({
           title: 'Success',
           description: 'Account created successfully',
         });
+        
+        // Create user profile in Firestore
+        try {
+          const response = await fetch('/api/auth/create-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: userCredential.user.uid,
+              email,
+              fullName,
+              role: isAdminLogin ? 'admin' : role,
+              company,
+            }),
+          });
+          
+          if (!response.ok) {
+            console.warn('Failed to create user profile:', await response.text());
+          }
+        } catch (profileErr) {
+          console.warn('Error creating user profile:', profileErr);
+        }
       }
       // Redirect after successful auth
       router.replace(callbackUrl);
@@ -96,11 +120,29 @@ export default function LoginForm() {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       toast({
         title: 'Success',
         description: 'Signed in with Google',
       });
+      
+      // Create/update user profile
+      try {
+        await fetch('/api/auth/create-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: result.user.uid,
+            email: result.user.email,
+            fullName: result.user.displayName || '',
+            role: 'client',
+            company: '',
+          }),
+        });
+      } catch (err) {
+        console.warn('Failed to create user profile:', err);
+      }
+      
       router.replace(callbackUrl);
     } catch (error) {
       const authError = error as any;
@@ -226,6 +268,46 @@ export default function LoginForm() {
               />
             </div>
           </div>
+
+          {!isLogin && (
+            <>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Full Name</label>
+                <Input
+                  type="text"
+                  placeholder="John Doe"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Account Type</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as 'client' | 'admin')}
+                  disabled={loading}
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="client">Client</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Company (Optional)</label>
+                <Input
+                  type="text"
+                  placeholder="Your company name"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+            </>
+          )}
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Password</label>

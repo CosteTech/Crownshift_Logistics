@@ -65,8 +65,8 @@ export default function Footer() {
               <h3 className="font-headline font-semibold">Quick Links</h3>
               <ul className="mt-4 space-y-2 text-sm">
                 <li><Link href="/#quote" className="text-muted-foreground hover:text-primary">Get a Quote</Link></li>
-                <li><Link href="/tracking" className="text-muted-foreground hover:text-primary">Track Shipment</Link></li>
-                <li><Link href="/faq" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
+                <li><Link href="/client/tracking" className="text-muted-foreground hover:text-primary">Track Shipment</Link></li>
+                <li><Link href="/client/faq" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
               </ul>
             </div>
              <div>
@@ -121,8 +121,14 @@ export default function Footer() {
         </div>
         <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
           <p>
-            &copy; {new Date().getFullYear()} Crownshift Logistics LTD. All rights reserved
-            <Link href="/admin" className="text-inherit hover:text-inherit no-underline">.</Link>
+            &copy; {new Date().getFullYear()} Crownshift Logistics LTD. All rights reserved.
+            <Link 
+              href="/login?callbackUrl=%2Fadmin" 
+              className="text-inherit hover:text-inherit no-underline cursor-pointer group"
+              title="Admin Portal"
+            >
+              <span className="invisible group-hover:visible text-xs ml-1 text-slate-400">[admin]</span>
+            </Link>
           </p>
         </div>
       </div>
