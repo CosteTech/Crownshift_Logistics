@@ -1,6 +1,43 @@
-# Firebase Studio
+# Crownshift Logistics
 
-This is a NextJS starter in Firebase Studio.
+This repository contains the code and resources for the Crownshift Logistics project. The project is structured to facilitate easy navigation and development.
 
-To get started, take a look at src/app/page.tsx.
-so am going to send you a zip file, I want you to take your time and fully analyze all the codes inside it. analyze every file. then from there we can now execute my goals with this project. 1. my landing page currently has an AI feature that should be accessible once the client user logs in. 2. the services in my landing page should only be for advertisement. for real use client must login so provide button that says get service to redirect the client to login and once logged in redirect the user to the service he/she/they needed. 3. have whatapp, tiktok ,linkedin ,X ,facebook ,istagram chat icon link. 4. have an AI chat bot in the client user AI. for FAQs purposes. 5. Login button @ top right of the navbar. user to register with any type of email that is Gmail, yahoo, outlook, applied, etc. 5. add payment functionality include stripe, PayPal, mpesa, Venmo, visa cards, master cards, cash app. etc., 6. have an admin portal that contains a dashboard with no of users a search bar that can utilize serial numbers of services to search. btw each service should be given a serial number for tracking purposes. the admin portal should have a way to add and remove services i.e.,. you no longer offer a certain service or the company is growing and you need to add a new service. the dashboard should show data analytics like how much revenue generated in a certain period, also ability to generate invoice. 7. in future I would want to scale this app into a stand alone app for android and IOS and windows. 8. security of the clients data is paramount, logins , payments should be very secure. this is non negotiable no cutting corners. therefore with these Goals in mind I think we can create a functional website to present to our client on Jamhuri day. after analyzing every bit of the zip file and reading through my goals provide improvements, and materials I can use offline as I work on this project.
+## Project Structure
+
+```
+Crownshift_Logistics/
+├── Crownshift-main/
+│   ├── apphosting.yaml
+│   ├── build-log.txt
+│   ├── components.json
+│   ├── firestore.rules
+│   ├── generate_pdf.py
+│   ├── middleware.js
+│   ├── middleware.ts
+│   ├── next-env.d.ts
+│   ├── next.config.ts
+│   ├── package.json
+│   ├── postcss.config.mjs
+│   ├── PROJECT_TREE.txt
+│   ├── public/
+│   ├── src/
+│   ├── tailwind.config.ts
+│   ├── tsconfig.json
+│   └── type-errors.txt
+└── docs/
+    └── ...
+```
+
+## Getting Started
+
+1. Clone the repository.
+2. Install dependencies using `npm install`.
+3. Run the application using `npm start`.
+
+## Contributing
+
+Please read the [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
