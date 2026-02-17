@@ -1,3 +1,21 @@
+import React from "react";
+import SeedControl from "@/components/admin/SeedControl";
+
+export const metadata = {
+  title: "Admin Dashboard — Crownshift Logistics",
+};
+
+export default function AdminPage() {
+  return (
+    <div>
+      <h1>Admin Dashboard</h1>
+      <section>
+        <h2>Deployment / Data</h2>
+        <SeedControl />
+      </section>
+    </div>
+  );
+}
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTotalCustomers, getTotalBookings, getPendingReviews } from '@/app/actions';
@@ -10,6 +28,7 @@ import ServicesForm from '@/components/admin/services-form';
 import FAQsForm from '@/components/admin/faqs-form';
 import OffersForm from '@/components/admin/offers-form';
 import ReviewsApprovalForm from '@/components/admin/reviews-approval-form';
+import SeedControl from '@/components/admin/SeedControl';
 
 export default async function AdminDashboard() {
   // --- 1. SERVER-SIDE AUTHENTICATION AND AUTHORIZATION ---
@@ -172,6 +191,19 @@ export default async function AdminDashboard() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Seeder control for admins */}
+        <div className="mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>One-time Seeder</CardTitle>
+              <CardDescription>Run the default data seeder for services and FAQs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SeedControl />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </section>
   );

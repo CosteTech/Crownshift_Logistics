@@ -43,7 +43,7 @@ export default function OffersPage() {
   const promos = offers.map((offer) => ({
     serviceName: offer.title,
     discount: offer.discountPercentage,
-    validUntil: offer.discountEndsAt,
+    validUntil: offer.discountEndsAt ? String(offer.discountEndsAt) : '',
   }));
 
   if (isLoading) {

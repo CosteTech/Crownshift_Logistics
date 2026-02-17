@@ -3,48 +3,152 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // helpers
+    function isAuth() {
+      return request.auth != null;
+    }
 
-    // Helper function to check if a user is an administrator
     function isAdmin() {
-      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      return isAuth() && request.auth.token.role == "admin";
     }
 
-    // Admins can read and write to the admin roles collection
-    match /roles_admin/{userId} {
-      allow read, write: if isAdmin();
-      // Allow a user to be created in the admin role collection during sign-up
-      allow create: if request.auth.uid == userId;
+    // sensitive fields that must only be written by server-admin (Admin SDK)
+    function sensitiveKeys() {
+      return [
+        'payment',
+        'paymentStatus',
+        'invoiceUrl',
+        'estimatedDeliveryDate',
+        'trackingNumber'
+      ];
     }
 
-    // Rules for the top-level shipments collection
+    // ensure client does not set or modify sensitive keys
+    function clientDoesNotSetSensitive() {
+      return !(request.resource.data.keys().hasAny(sensitiveKeys()));
+    }
+
+    // ensure existing sensitive fields are not changed by client
+    function clientDoesNotChangeSensitive() {
+      // if resource doesn't exist, client shouldn't set them (handled in create)
+      return !(request.resource.data.keys().hasAny(sensitiveKeys()));
+    }
+
+    // require that requests that list documents include companyId filter matching caller
+    function queryIsScopedToCompany() {
+      // best-effort: allow list only when query constrains companyId to caller
+      return isAuth() && request.query != null && (request.query.where('companyId','==', request.auth.token.companyId));
+    }
+
+    // === Generic pattern for company-scoped collections ===
+    // Services
+    match /services/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
+      allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
+    }
+
+    // FAQs
+    match /faqs/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
+      allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
+    }
+
+    // Offers
+    match /offers/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
+      allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
+    }
+
+    // Warehouses
+    match /warehouses/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create, update, delete: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+    }
+
+    // Inventory
+    match /inventory/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create, update, delete: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+    }
+
+    // Inventory Movements (audit log)
+    match /inventoryMovements/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      allow update, delete: if false;
+    }
+
+    // Vehicles
+    match /vehicles/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create, update, delete: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+    }
+
+    // Drivers
+    match /drivers/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create, update, delete: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+    }
+
+    // Vehicle Assignments (created by server/admin only)
+    match /vehicleAssignments/{docId} {
+      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
+      allow list: if queryIsScopedToCompany();
+      allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      allow update, delete: if false;
+    }
+
+    // Shipments
     match /shipments/{shipmentId} {
-      // Admins can perform any action on any shipment
-      allow read, write: if isAdmin();
-      // Any user (including anonymous) can read a single shipment for tracking purposes
-      allow get: if true;
-      // Allow anyone to create a shipment (for the quote/booking form)
-      allow create: if true;
+      // Owner, company admin, or system can read
+      allow get: if isAuth() && (request.auth.uid == resource.data.customerId || request.auth.token.companyId == resource.data.companyId || request.auth.token.role == 'admin');
+      allow list: if queryIsScopedToCompany();
+      // creation: client allowed only if they are authenticated and companyId matches and no sensitive fields set
+      allow create: if isAuth() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      // updates: only admins via their authenticated token; clients cannot modify sensitive fields (those must be set server-side with Admin SDK)
+      allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
+      allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
     }
 
-    // Rules for contact form submissions (only admins)
-    match /contactFormSubmissions/{submissionId} {
-      allow read, write: if isAdmin();
-      // Allow anyone to create a submission
-      allow create: if true;
-    }
-    
-    // Testimonials and Services are public
-    match /testimonials/{testimonialId} {
-      allow get: if true;
-      allow list, write: if isAdmin();
+    // Invoices (audit records)
+    match /invoices/{docId} {
+      allow get: if isAuth() && (request.auth.uid == resource.data.customerId || request.auth.token.companyId == resource.data.companyId || request.auth.token.role == 'admin');
+      allow list: if queryIsScopedToCompany();
+      // creation and changes to invoiceUrl must be performed server-side (Admin SDK). Prevent clients from setting invoiceUrl.
+      allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
+      allow update, delete: if false;
     }
 
-    match /services/{serviceId} {
-      allow get, list: if true;
-      allow write: if isAdmin();
+    // Users: only user can read/update their own profile; admins can read users for their company
+    match /users/{userId} {
+      allow get: if isAuth() && (request.auth.uid == userId || request.auth.token.companyId == resource.data.companyId && isAdmin());
+      allow list: if false;
+      allow create: if isAuth() && request.auth.uid == userId && request.resource.data.companyId == request.auth.token.companyId;
+      allow update: if request.auth != null && request.auth.uid == userId && clientDoesNotSetSensitive();
+      allow delete: if false;
     }
 
-    // By default, deny all other access
+    // Webhook / server-only collections: allow only server (Admin SDK) writes — deny clients
+    match /webhookEvents/{docId} {
+      allow read: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
+      allow write: if false; // only Admin SDK should write
+    }
+
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

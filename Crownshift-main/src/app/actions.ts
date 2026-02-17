@@ -9,6 +9,16 @@ import { getFirestoreAdmin } from '@/firebase/server-init';
 import { FieldValue } from 'firebase-admin/firestore';
 import { isServiceDeletable, isFAQDeletable, isDefaultService, isDefaultFAQ } from '@/lib/data-models';
 
+// Helper: require company from server cookie context
+async function requireCompanyFromServer() {
+  const { requireCompanyFromRequest } = await import('@/lib/companyContext');
+  const cookieStore = await cookies();
+  const session = cookieStore.get('__session')?.value || cookieStore.get('token')?.value || '';
+  const headers = { cookie: session ? `__session=${session}` : '' };
+  const res = await requireCompanyFromRequest(headers as any);
+  return res.companyId as string;
+}
+
 // ==================== AUTH ====================
 export async function logoutAction() {
   const cookieStore = await cookies();
@@ -30,18 +40,34 @@ export async function createUserProfile(userId: string, data: {
   try {
     const db = await getFirestoreAdmin();
     const userRef = db.collection('users').doc(userId);
-    
-    await userRef.set(
-      {
-        email: data.email,
-        fullName: data.fullName || '',
-        role: data.role || 'client',
-        company: data.company || '',
-        updatedAt: new Date(),
-        createdAt: (await userRef.get()).exists ? undefined : new Date(),
-      },
-      { merge: true }
-    );
+    // enforce company from caller token when available
+    try {
+      const companyId = await requireCompanyFromServer();
+      await userRef.set(
+        {
+          email: data.email,
+          fullName: data.fullName || '',
+          role: data.role || 'client',
+          companyId: companyId,
+          updatedAt: new Date(),
+          createdAt: (await userRef.get()).exists ? undefined : new Date(),
+        },
+        { merge: true }
+      );
+    } catch (e) {
+      // fallback: still set profile but without companyId when no token available
+      await userRef.set(
+        {
+          email: data.email,
+          fullName: data.fullName || '',
+          role: data.role || 'client',
+          companyId: data.company || null,
+          updatedAt: new Date(),
+          createdAt: (await userRef.get()).exists ? undefined : new Date(),
+        },
+        { merge: true }
+      );
+    }
     
     return { success: true };
   } catch (error) {
@@ -59,7 +85,13 @@ export async function getUserProfile(userId: string) {
     if (!doc.exists) {
       return { success: false, error: 'User profile not found' };
     }
-    
+    // ensure company isolation: allow if caller is same company or no company context
+    try {
+      const companyId = await requireCompanyFromServer();
+      const data = doc.data() as any;
+      if (data?.companyId && data.companyId !== companyId) return { success: false, error: 'Forbidden' };
+    } catch { /* no token available, allow */ }
+
     return { success: true, data: doc.data() };
   } catch (error) {
     console.error('Error fetching user profile:', error);
@@ -130,7 +162,8 @@ export async function getQuote(prevState: QuoteFormState, formData: FormData): P
 export async function getServices() {
   try {
     const db = await getFirestoreAdmin();
-    const snapshot = await db.collection('services').get();
+    const companyId = await requireCompanyFromServer();
+    const snapshot = await db.collection('services').where('companyId', '==', companyId).get();
     const services: any[] = [];
     snapshot.forEach((doc) => {
       services.push({ id: doc.id, ...doc.data() });
@@ -150,8 +183,10 @@ export async function addService(data: {
 }) {
   try {
     const db = await getFirestoreAdmin();
+    const companyId = await requireCompanyFromServer();
     const docRef = await db.collection('services').add({
       ...data,
+      companyId,
       createdAt: new Date(),
     });
     return { success: true, id: docRef.id };
@@ -172,7 +207,13 @@ export async function updateService(
 ) {
   try {
     const db = await getFirestoreAdmin();
-    await db.collection('services').doc(id).update({
+    const companyId = await requireCompanyFromServer();
+    const ref = db.collection('services').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: 'Not found' };
+    const s = snap.data() as any;
+    if (s.companyId !== companyId) return { success: false, error: 'Forbidden' };
+    await ref.update({
       ...data,
       updatedAt: new Date(),
     });
@@ -194,7 +235,13 @@ export async function deleteService(id: string) {
     }
 
     const db = await getFirestoreAdmin();
-    await db.collection('services').doc(id).delete();
+    const companyId = await requireCompanyFromServer();
+    const ref = db.collection('services').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: 'Not found' };
+    const s = snap.data() as any;
+    if (s.companyId !== companyId) return { success: false, error: 'Forbidden' };
+    await ref.delete();
     return { success: true };
   } catch (error) {
     console.error('Error details:', error instanceof Error ? error.message : error);
@@ -206,7 +253,8 @@ export async function deleteService(id: string) {
 export async function getOffers() {
   try {
     const db = await getFirestoreAdmin();
-    const snapshot = await db.collection('offers').get();
+    const companyId = await requireCompanyFromServer();
+    const snapshot = await db.collection('offers').where('companyId', '==', companyId).get();
     const offers: any[] = [];
     snapshot.forEach((doc) => {
       offers.push({ id: doc.id, ...doc.data() });
@@ -221,8 +269,10 @@ export async function getOffers() {
 export async function getActiveOffers() {
   try {
     const db = await getFirestoreAdmin();
+    const companyId = await requireCompanyFromServer();
     const snapshot = await db
       .collection('offers')
+      .where('companyId', '==', companyId)
       .where('isActive', '==', true)
       .get();
     const offers: any[] = [];
@@ -244,8 +294,10 @@ export async function addOffer(data: {
 }) {
   try {
     const db = await getFirestoreAdmin();
+    const companyId = await requireCompanyFromServer();
     const docRef = await db.collection('offers').add({
       ...data,
+      companyId,
       createdAt: new Date(),
     });
     return { success: true, id: docRef.id };
@@ -266,7 +318,13 @@ export async function updateOffer(
 ) {
   try {
     const db = await getFirestoreAdmin();
-    await db.collection('offers').doc(id).update({
+    const companyId = await requireCompanyFromServer();
+    const ref = db.collection('offers').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: 'Not found' };
+    const o = snap.data() as any;
+    if (o.companyId !== companyId) return { success: false, error: 'Forbidden' };
+    await ref.update({
       ...data,
       updatedAt: new Date(),
     });
@@ -280,7 +338,13 @@ export async function updateOffer(
 export async function deleteOffer(id: string) {
   try {
     const db = await getFirestoreAdmin();
-    await db.collection('offers').doc(id).delete();
+    const companyId = await requireCompanyFromServer();
+    const ref = db.collection('offers').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: 'Not found' };
+    const o = snap.data() as any;
+    if (o.companyId !== companyId) return { success: false, error: 'Forbidden' };
+    await ref.delete();
     return { success: true };
   } catch (error) {
     console.error('Error details:', error instanceof Error ? error.message : error);
@@ -396,7 +460,8 @@ export async function rejectReview(id: string) {
 export async function getFAQs() {
   try {
     const db = await getFirestoreAdmin();
-    const snapshot = await db.collection('faqs').orderBy('order').get();
+    const companyId = await requireCompanyFromServer();
+    const snapshot = await db.collection('faqs').where('companyId', '==', companyId).orderBy('order').get();
     const faqs: any[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
@@ -429,13 +494,15 @@ export async function addFAQ(data: {
       .substring(0, 50);
 
     // Get the highest order number
-    const snapshot = await db.collection('faqs').orderBy('order', 'desc').limit(1).get();
+    const companyId = await requireCompanyFromServer();
+    const snapshot = await db.collection('faqs').where('companyId', '==', companyId).orderBy('order', 'desc').limit(1).get();
     const maxOrder = snapshot.empty ? 0 : (snapshot.docs[0].data().order || 0);
 
     const newDocRef = await db.collection('faqs').add({
       question: data.question,
       answer: data.answer,
       slug: slug,
+      companyId,
       isDefault: false,
       isVisible: true,
       order: maxOrder + 1,
@@ -458,7 +525,13 @@ export async function updateFAQ(id: string, data: {
 }) {
   try {
     const db = await getFirestoreAdmin();
-    
+    const companyId = await requireCompanyFromServer();
+    const ref = db.collection('faqs').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: 'Not found' };
+    const f = snap.data() as any;
+    if (f.companyId !== companyId) return { success: false, error: 'Forbidden' };
+
     const updateData: any = {
       ...data,
       updatedAt: new Date(),
@@ -473,7 +546,7 @@ export async function updateFAQ(id: string, data: {
         .substring(0, 50);
     }
 
-    await db.collection('faqs').doc(id).update(updateData);
+    await ref.update(updateData);
     return { success: true };
   } catch (error) {
     console.error('Error details:', error instanceof Error ? error.message : error);
@@ -492,7 +565,13 @@ export async function deleteFAQ(id: string) {
     }
 
     const db = await getFirestoreAdmin();
-    await db.collection('faqs').doc(id).delete();
+    const companyId = await requireCompanyFromServer();
+    const ref = db.collection('faqs').doc(id);
+    const snap = await ref.get();
+    if (!snap.exists) return { success: false, error: 'Not found' };
+    const f = snap.data() as any;
+    if (f.companyId !== companyId) return { success: false, error: 'Forbidden' };
+    await ref.delete();
     return { success: true };
   } catch (error) {
     console.error('Error details:', error instanceof Error ? error.message : error);
@@ -504,7 +583,8 @@ export async function deleteFAQ(id: string) {
 export async function getTotalCustomers() {
   try {
     const db = await getFirestoreAdmin();
-    const snapshot = await db.collection('users').get();
+    const companyId = await requireCompanyFromServer();
+    const snapshot = await db.collection('users').where('companyId', '==', companyId).get();
     return { success: true, count: snapshot.size };
   } catch (error) {
     console.error('Error details:', error instanceof Error ? error.message : error);

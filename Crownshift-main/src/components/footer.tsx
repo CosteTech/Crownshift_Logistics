@@ -24,12 +24,8 @@ export default function Footer() {
         const items = snap.docs.map(d => ({ title: (d.data() as any).title || d.id, slug: d.id }));
         if (mounted) setServices(items);
       } catch (err) {
-        console.warn('Could not fetch services from Firestore, using mock data:', err);
-        if (mounted) setServices([
-          { title: 'Local Express', slug: 'local-express' },
-          { title: 'International Air Freight', slug: 'air-freight' },
-          { title: 'Warehousing', slug: 'warehousing' },
-        ]);
+        console.error('Could not fetch services from Firestore:', err);
+        if (mounted) setServices([]);
       }
     }
 
@@ -65,8 +61,8 @@ export default function Footer() {
               <h3 className="font-headline font-semibold">Quick Links</h3>
               <ul className="mt-4 space-y-2 text-sm">
                 <li><Link href="/#quote" className="text-muted-foreground hover:text-primary">Get a Quote</Link></li>
-                <li><Link href="/client/tracking" className="text-muted-foreground hover:text-primary">Track Shipment</Link></li>
-                <li><Link href="/client/faq" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
+                <li><Link href="/tracking" className="text-muted-foreground hover:text-primary">Track Shipment</Link></li>
+                <li><Link href="/faq" className="text-muted-foreground hover:text-primary">FAQ</Link></li>
               </ul>
             </div>
              <div>
@@ -110,7 +106,7 @@ export default function Footer() {
 
   <Button variant="ghost" size="icon" asChild>
     <Link href="#" aria-label="Tiktok">
-      <img src="/icons/tiktok.svg" className="h-5 w-5" alt="TikTok" />
+      <img src="/tiktok.svg" className="h-5 w-5" alt="TikTok" />
       <span className="sr-only">TikTok</span>
     </Link>
   </Button>

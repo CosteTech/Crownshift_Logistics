@@ -35,3 +35,20 @@ export function getAdminAuth() {
   const app = getAdminApp();
   return admin.auth(app);
 }
+
+export async function verifyAdminToken(idToken: string) {
+  const auth = getAdminAuth();
+  const decoded = await auth.verifyIdToken(idToken).catch((err) => {
+    throw new Error('Invalid token');
+  });
+  if (decoded && decoded.role === 'admin') return decoded;
+  throw new Error('Insufficient privileges');
+}
+
+export async function verifyIdToken(idToken: string) {
+  const auth = getAdminAuth();
+  const decoded = await auth.verifyIdToken(idToken).catch((err) => {
+    throw new Error('Invalid token');
+  });
+  return decoded;
+}

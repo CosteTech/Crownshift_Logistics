@@ -1,3 +1,39 @@
+import React from "react";
+
+export const metadata = {
+  title: "Admin — Crownshift Logistics",
+};
+
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <aside className="w-64 bg-white shadow-md p-6 flex-shrink-0">
+        <h2 className="text-xl font-bold text-blue-600 mb-6">Crownshift Admin</h2>
+        <nav className="space-y-3 text-sm">
+          <a className="block text-gray-700 hover:text-blue-600" href="/admin">Dashboard</a>
+          <a className="block text-gray-700 hover:text-blue-600" href="/admin/services">Services</a>
+          <a className="block text-gray-700 hover:text-blue-600" href="/admin/shipments">Shipments</a>
+          <a className="block text-gray-700 hover:text-blue-600" href="/admin/offers">Offers</a>
+          <a className="block text-gray-700 hover:text-blue-600" href="/admin/faqs">FAQs</a>
+        </nav>
+      </aside>
+
+      <div className="flex-1 flex flex-col">
+        <header className="bg-white border-b p-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-lg font-semibold">Admin Dashboard</h1>
+            <span className="text-sm text-gray-500">Manage services, shipments and promotions</span>
+          </div>
+          <div>
+            <button className="px-3 py-1 bg-blue-600 text-white rounded">Sign out</button>
+          </div>
+        </header>
+
+        <main className="p-6 overflow-y-auto">{children}</main>
+      </div>
+    </div>
+  );
+}
 import { logoutAction } from "@/app/actions";
 import { getAdminAuth } from "@/firebase/server-init";
 import { cookies } from "next/headers";

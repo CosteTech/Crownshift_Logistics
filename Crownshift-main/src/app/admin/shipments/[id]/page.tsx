@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, WithId } from '@/firebase/firestore/use-doc';
-import { useFirebase, updateDocumentNonBlocking, addDocumentNonBlocking, useMemoFirebase } from '@/firebase';
+import { useFirebase, useMemoFirebase } from '@/firebase';
 import { doc, collection, serverTimestamp } from 'firebase/firestore';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -105,7 +105,7 @@ export default function ShipmentEditPage() {
     }
   }, [shipment, reset, isNew]);
 
-  const onSubmit = (data: ShipmentFormData) => {
+  const onSubmit = async (data: ShipmentFormData) => {
     if (!firestore) return;
     setIsSubmitting(true);
     
@@ -118,18 +118,33 @@ export default function ShipmentEditPage() {
     };
 
     if (isNew) {
-      const finalData = {...dataToSave, creationDate: serverTimestamp()};
-      addDocumentNonBlocking(collection(firestore, 'shipments'), finalData)
-        .then(() => {
+      try {
+        const resp = await fetch('/api/shipments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...dataToSave }) });
+        const json = await resp.json();
+        if (resp.ok) {
           toast({ title: 'Success', description: 'Shipment created successfully.' });
           router.push('/admin');
-        })
-        .catch(() => setIsSubmitting(false));
+        } else {
+          throw new Error(json?.error || 'create failed');
+        }
+      } catch (e) {
+        console.error('Create shipment failed', e);
+        setIsSubmitting(false);
+      }
     } else {
-      updateDocumentNonBlocking(shipmentRef!, dataToSave);
-      toast({ title: 'Success', description: 'Shipment updated successfully.' });
-      setIsSubmitting(false);
-      router.push('/admin');
+      try {
+        const resp = await fetch('/api/shipments', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, updates: dataToSave }) });
+        const json = await resp.json();
+        if (resp.ok) {
+          toast({ title: 'Success', description: 'Shipment updated successfully.' });
+          router.push('/admin');
+        } else {
+          throw new Error(json?.error || 'update failed');
+        }
+      } catch (e) {
+        console.error('Update shipment failed', e);
+        setIsSubmitting(false);
+      }
     }
   };
 

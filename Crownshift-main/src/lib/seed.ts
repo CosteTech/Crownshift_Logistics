@@ -10,7 +10,7 @@ import { DEFAULT_SERVICES, DEFAULT_FAQS, Service, FAQ } from '@/lib/data-models'
  * Seed default services if they don't exist
  * Should be called once on first deployment or manually
  */
-export async function seedDefaultServices() {
+export async function seedDefaultServices(companyId?: string) {
   try {
     const db = await getFirestoreAdmin();
 
@@ -20,8 +20,10 @@ export async function seedDefaultServices() {
 
       // Only create if doesn't exist
       if (!docSnap.exists) {
+        if (!companyId) throw new Error('companyId required for seeding services');
         await docRef.set({
           ...service,
+          companyId,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -40,7 +42,7 @@ export async function seedDefaultServices() {
  * Seed default FAQs if they don't exist
  * Should be called once on first deployment or manually
  */
-export async function seedDefaultFAQs() {
+export async function seedDefaultFAQs(companyId?: string) {
   try {
     const db = await getFirestoreAdmin();
 
@@ -50,8 +52,10 @@ export async function seedDefaultFAQs() {
 
       // Only create if doesn't exist
       if (!docSnap.exists) {
+        if (!companyId) throw new Error('companyId required for seeding faqs');
         await docRef.set({
           ...faq,
+          companyId,
           createdAt: new Date(),
           updatedAt: new Date(),
         });
@@ -69,11 +73,11 @@ export async function seedDefaultFAQs() {
 /**
  * Seed both services and FAQs
  */
-export async function seedDefaults() {
+export async function seedDefaults(companyId?: string) {
   console.log('[SEED] Starting database seed...');
 
-  const servicesResult = await seedDefaultServices();
-  const faqsResult = await seedDefaultFAQs();
+  const servicesResult = await seedDefaultServices(companyId);
+  const faqsResult = await seedDefaultFAQs(companyId);
 
   console.log('[SEED] Seeding complete:', {
     services: servicesResult,
@@ -90,15 +94,17 @@ export async function seedDefaults() {
 /**
  * Check if defaults are initialized
  */
-export async function areDefaultsInitialized(): Promise<boolean> {
+export async function areDefaultsInitialized(companyId?: string): Promise<boolean> {
   try {
     const db = await getFirestoreAdmin();
 
-    // Check if any default service exists
+    if (!companyId) throw new Error('companyId required');
+    // Check if any default service exists for this company
     const servicesSnap = await db.collection('services').doc(DEFAULT_SERVICES[0].id).get();
     const facsSnap = await db.collection('faqs').doc(DEFAULT_FAQS[0].id).get();
 
-    return servicesSnap.exists && facsSnap.exists;
+    // Check companyId field on the docs
+    return (servicesSnap.exists && (servicesSnap.data()?.companyId === companyId)) && (facsSnap.exists && (facsSnap.data()?.companyId === companyId));
   } catch (error) {
     console.error('Error checking defaults:', error);
     return false;
