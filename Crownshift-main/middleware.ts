@@ -1,29 +1,3 @@
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-export function middleware(request: NextRequest) {
-  const adminToken = request.cookies.get("admin-token");
-  const session = request.cookies.get("session");
-  const { pathname } = request.nextUrl;
-
-  // Protect admin routes: require admin-token cookie (set after secure login)
-  if (pathname.startsWith("/admin")) {
-    if (!adminToken) return NextResponse.redirect(new URL("/login", request.url));
-    return NextResponse.next();
-  }
-
-  // Protect user dashboard routes: require firebase session cookie named `session`
-  if (pathname.startsWith("/dashboard")) {
-    if (!session) return NextResponse.redirect(new URL("/login", request.url));
-    return NextResponse.next();
-  }
-
-  return NextResponse.next();
-}
-
-export const config = {
-  matcher: ["/admin/:path*", "/dashboard/:path*", "/dashboard"],
-};
 import { NextRequest, NextResponse } from 'next/server';
 
 // Protected routes and their required roles

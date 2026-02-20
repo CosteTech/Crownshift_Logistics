@@ -1,21 +1,3 @@
-import React from "react";
-import SeedControl from "@/components/admin/SeedControl";
-
-export const metadata = {
-  title: "Admin Dashboard — Crownshift Logistics",
-};
-
-export default function AdminPage() {
-  return (
-    <div>
-      <h1>Admin Dashboard</h1>
-      <section>
-        <h2>Deployment / Data</h2>
-        <SeedControl />
-      </section>
-    </div>
-  );
-}
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTotalCustomers, getTotalBookings, getPendingReviews } from '@/app/actions';
@@ -29,6 +11,10 @@ import FAQsForm from '@/components/admin/faqs-form';
 import OffersForm from '@/components/admin/offers-form';
 import ReviewsApprovalForm from '@/components/admin/reviews-approval-form';
 import SeedControl from '@/components/admin/SeedControl';
+
+export const metadata = {
+  title: "Admin Dashboard — Crownshift Logistics",
+};
 
 export default async function AdminDashboard() {
   // --- 1. SERVER-SIDE AUTHENTICATION AND AUTHORIZATION ---

@@ -1,33 +1,4 @@
 "use client";
-import { useState } from "react";
-
-export default function SeedControl() {
-  const [running, setRunning] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  async function runSeed() {
-    setRunning(true);
-    setMessage(null);
-    try {
-      const res = await fetch("/api/admin/seed", { method: "POST" });
-      const data = await res.json();
-      setMessage(JSON.stringify(data));
-    } catch (e) {
-      setMessage((e as Error).message);
-    }
-    setRunning(false);
-  }
-
-  return (
-    <div>
-      <button onClick={runSeed} disabled={running}>
-        {running ? "Seeding…" : "Run Seeder"}
-      </button>
-      {message ? <pre style={{ whiteSpace: "pre-wrap" }}>{message}</pre> : null}
-    </div>
-  );
-}
-"use client";
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';

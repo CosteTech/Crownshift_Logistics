@@ -27,7 +27,7 @@ export default function Header() {
   ];
 
   const authLinks = [
-    { name: 'Instant Quote', href: '/#quote' },
+    { name: '', href: '' },
     { name: 'Track', href: '/tracking' },
     { name: 'Offers', href: '/offers' },
   ];
