@@ -43,8 +43,9 @@ service cloud.firestore {
     // === Generic pattern for company-scoped collections ===
     // Services
     match /services/{docId} {
-      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
-      allow list: if queryIsScopedToCompany();
+      // Publicly readable (marketing site) but writes restricted to admins
+      allow get: if true;
+      allow list: if true;
       allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
       allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
       allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
@@ -52,8 +53,9 @@ service cloud.firestore {
 
     // FAQs
     match /faqs/{docId} {
-      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
-      allow list: if queryIsScopedToCompany();
+      // Publicly readable
+      allow get: if true;
+      allow list: if true;
       allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
       allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
       allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;
@@ -61,8 +63,9 @@ service cloud.firestore {
 
     // Offers
     match /offers/{docId} {
-      allow get: if isAuth() && request.auth.token.companyId == resource.data.companyId;
-      allow list: if queryIsScopedToCompany();
+      // Publicly readable
+      allow get: if true;
+      allow list: if true;
       allow create: if isAdmin() && request.auth.token.companyId == request.resource.data.companyId && clientDoesNotSetSensitive();
       allow update: if isAdmin() && request.auth.token.companyId == resource.data.companyId && clientDoesNotChangeSensitive();
       allow delete: if isAdmin() && request.auth.token.companyId == resource.data.companyId;

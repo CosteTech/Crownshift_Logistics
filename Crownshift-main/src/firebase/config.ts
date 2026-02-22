@@ -31,15 +31,13 @@ export const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
 // Try Firebase App Hosting first, fall back to config
 let _firebaseApp: any;
 
-try {
-  _firebaseApp = getApps().length > 0 ? getApp() : initializeApp();
-} catch (e) {
-  // Fallback to using firebaseConfig if automatic initialization fails
-  if (getApps().length === 0) {
-    _firebaseApp = initializeApp(firebaseConfig);
-  } else {
-    _firebaseApp = getApp();
-  }
+// Initialize Firebase using the explicit config when no app exists.
+// This prevents creating an app with empty/undefined config which
+// can happen if environment variables are malformed.
+if (getApps().length === 0) {
+  _firebaseApp = initializeApp(firebaseConfig);
+} else {
+  _firebaseApp = getApp();
 }
 
 export const firebaseApp = _firebaseApp;

@@ -1,13 +1,11 @@
-import { getFAQs } from '@/app/actions';
+import { getVisibleFAQs } from '@/lib/seed';
 import { generatePageMetadata } from '@/lib/seo-metadata';
 
 export const metadata = generatePageMetadata('FAQ', 'Frequently asked questions', '/faq');
 
 export default async function FAQServerPage() {
   try {
-    const res = await getFAQs();
-    if (!res.success) throw new Error(res.error || 'Failed to fetch FAQs');
-    const faqs = res.data || [];
+    const faqs = await getVisibleFAQs();
 
     return (
       <section className="py-16 container mx-auto px-4">

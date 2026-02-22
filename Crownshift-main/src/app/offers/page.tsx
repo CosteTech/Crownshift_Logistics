@@ -1,13 +1,13 @@
-import { getActiveOffers } from '@/app/actions';
+import { getVisibleServices } from '@/lib/seed';
+import { getActiveOffers as computeActiveOffers } from '@/lib/offers';
 import { generatePageMetadata } from '@/lib/seo-metadata';
 
 export const metadata = generatePageMetadata('Offers', 'Current offers and discounts', '/offers');
 
 export default async function OffersPage() {
   try {
-    const res = await getActiveOffers();
-    if (!res.success) throw new Error(res.error || 'Failed to fetch offers');
-    const offers = res.data || [];
+    const services = await getVisibleServices();
+    const offers = computeActiveOffers(services || []);
 
     return (
       <section className="py-16 container mx-auto px-4">

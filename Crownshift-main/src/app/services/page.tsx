@@ -1,17 +1,12 @@
 import Link from 'next/link';
-import { getServices } from '@/app/actions';
+import { getVisibleServices } from '@/lib/seed';
 import { generatePageMetadata } from '@/lib/seo-metadata';
 
 export const metadata = generatePageMetadata('Services', 'Our logistics services', '/services');
 
 export default async function ServicesPage() {
   try {
-    const res = await getServices();
-    if (!res.success) {
-      throw new Error(res.error || 'Failed to load services');
-    }
-
-    const services = res.data || [];
+    const services = await getVisibleServices();
 
     return (
       <section className="py-16 container mx-auto px-4">

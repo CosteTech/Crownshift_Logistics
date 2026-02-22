@@ -9,6 +9,7 @@ import PromoBanner from "@/components/PromoBanner";
 import { SEO_CONFIG } from "@/config/seo";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SEO_CONFIG.openGraph.url || "http://localhost:3000"),
   title: SEO_CONFIG.defaultTitle,
   description: SEO_CONFIG.defaultDescription,
   keywords: SEO_CONFIG.defaultKeywords,
