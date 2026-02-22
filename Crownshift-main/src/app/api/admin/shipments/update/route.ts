@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
+import { getFirestoreAdmin, verifyAdminToken } from "@/firebase/server-init";
 
+/**
+ * Admin shipment update endpoint
+ * @route POST /api/admin/shipments/update
+ * @access Admin only
+ * @security Requires valid admin token and company isolation verification
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { trackingNumber, status, timelineEntry } = body;
     if (!trackingNumber) return NextResponse.json({ error: "missing trackingNumber" }, { status: 400 });
-
-    // Try to use server admin helper
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { getFirestoreAdmin, verifyAdminToken } = require("@/firebase/server-init");
-    if (!getFirestoreAdmin) throw new Error("Server admin not configured");
 
     const authHeader = (request as any).headers.get("authorization") || "";
     const token = authHeader.replace(/^Bearer\s+/i, "");

@@ -12,7 +12,7 @@ export const SEO_CONFIG = {
   ],
   openGraph: {
     type: "website",
-    url: "https://www.crownshift.com",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.crownshift.com",
     siteName: "Crownshift Logistics",
     images: [
       {

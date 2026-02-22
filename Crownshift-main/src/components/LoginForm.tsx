@@ -11,7 +11,7 @@ import {
   GoogleAuthProvider,
   AuthError,
 } from 'firebase/auth';
-import { initializeFirebase } from '@/firebase';
+import { auth } from '@/firebase/config';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,9 +33,6 @@ export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Initialize Firebase to get auth instance
-  const { auth } = initializeFirebase();
 
   // Redirect if already logged in — only redirect when auth loading is complete AND user exists
   useEffect(() => {

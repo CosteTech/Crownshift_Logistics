@@ -16,18 +16,33 @@ export const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
+// Validate required Firebase configuration
+if (!firebaseConfig.apiKey) {
+  console.error("❌ Firebase API Key is missing! Check environment variables: NEXT_PUBLIC_FIREBASE_API_KEY");
+}
+if (!firebaseConfig.projectId) {
+  console.error("❌ Firebase Project ID is missing! Check environment variables: NEXT_PUBLIC_FIREBASE_PROJECT_ID");
+}
+
 // Admin UID for dashboard access control
 export const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
 
-// Initialize Firebase (Singleton pattern)
+// Initialize Firebase (Singleton pattern to prevent re-initialization)
 // Try Firebase App Hosting first, fall back to config
-let firebaseApp;
+let _firebaseApp: any;
+
 try {
-  firebaseApp = getApps().length > 0 ? getApp() : initializeApp();
+  _firebaseApp = getApps().length > 0 ? getApp() : initializeApp();
 } catch (e) {
   // Fallback to using firebaseConfig if automatic initialization fails
-  firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  if (getApps().length === 0) {
+    _firebaseApp = initializeApp(firebaseConfig);
+  } else {
+    _firebaseApp = getApp();
+  }
 }
+
+export const firebaseApp = _firebaseApp;
 
 // Initialize and Export services
 export const auth = getAuth(firebaseApp);

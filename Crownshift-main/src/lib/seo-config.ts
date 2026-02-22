@@ -11,16 +11,15 @@ export const SEO_CONFIG = {
   localBusiness: {
     name: 'Crownshift Logistics LTD',
     description: 'Professional logistics and freight forwarding services worldwide',
-    url: 'https://crownshift.com',
-    telephone: '+1-XXX-XXX-XXXX', // TODO: Update with actual phone
+    url: process.env.NEXT_PUBLIC_SITE_URL || 'https://crownshift.com',
+    telephone: process.env.NEXT_PUBLIC_BUSINESS_PHONE || '+1-XXX-XXX-XXXX', // Required for Vercel deployment
     sameAs: [
       'https://linkedin.com/company/crownshift',
       // Add other social profiles
     ],
     address: {
       '@type': 'PostalAddress',
-      // TODO: Update with actual address
-      addressCountry: 'US',
+      addressCountry: process.env.NEXT_PUBLIC_BUSINESS_COUNTRY || 'US',
     },
   },
 };

@@ -33,7 +33,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'client' | 'admin'>('client');
+  const [role, setRole] = useState<'INDIVIDUAL' | 'BUSINESS'>('INDIVIDUAL');
   const [company, setCompany] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -104,8 +104,8 @@ export default function LoginForm() {
               userId: userCredential.user.uid,
               email,
               fullName,
-              role: isAdminLogin ? 'admin' : role,
-              company,
+              role: role,
+              company: role === 'BUSINESS' ? company : '',
             }),
           });
           
@@ -118,7 +118,7 @@ export default function LoginForm() {
       }
       
       // Set roles cookie based on selected role
-      const roles = [isAdminLogin ? 'admin' : role]; // e.g., ['client'] or ['admin']
+      const roles = [role]; // e.g., ['INDIVIDUAL'] or ['BUSINESS']
       await setRolesCookie(roles);
 
       // Redirect after successful auth
@@ -154,7 +154,7 @@ export default function LoginForm() {
             userId: result.user.uid,
             email: result.user.email,
             fullName: result.user.displayName || '',
-            role: 'client',
+            role: 'INDIVIDUAL', // Default role for Google sign-ins
             company: '',
           }),
         });
@@ -163,7 +163,7 @@ export default function LoginForm() {
       }
 
       // Set roles cookie (Google users default to 'client')
-      await setRolesCookie(['client']);
+      await setRolesCookie(['INDIVIDUAL']);
       
       router.replace(callbackUrl);
     } catch (error) {
@@ -244,31 +244,32 @@ export default function LoginForm() {
     }
   };
 
-  const handleSimulatedLogin = (platform: string) => {
-    alert(`Simulating ${platform} Login...`);
-    // Simulate successful login with demo user
-    toast({
-      title: 'Demo Login',
-      description: `${platform} login simulated successfully`,
-    });
-    // In a real app, this would authenticate the user
-    setTimeout(() => {
-      router.replace(callbackUrl);
-    }, 1000);
+  const handleOAuthSignIn = async (provider: 'microsoft' | 'apple') => {
+    setLoading(true);
+    try {
+      // Note: Microsoft and Apple OAuth integration requires additional Firebase configuration
+      // This is a placeholder for future implementation
+      console.warn(`${provider} OAuth not yet implemented. Please use Email or Google sign-in.`);
+      toast({
+        title: 'Coming Soon',
+        description: `${provider} sign-in will be available soon. Please use Email or Google for now.`,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="space-y-1">
         <CardTitle className="text-2xl text-center">
-          {isAdminLogin ? 'Admin Sign In' : (isLogin ? 'Welcome Back' : 'Create Account')}
+          {isLogin ? 'Welcome Back' : 'Create Account'}
         </CardTitle>
         <CardDescription className="text-center">
-          {isAdminLogin
-            ? 'Sign in to the admin dashboard'
-            : (isLogin
-              ? 'Sign in to your account to continue'
-              : 'Create an account to get started')}
+          {isLogin
+            ? 'Sign in to access our logistics services'
+            : 'Create an account to get started with our services'}
         </CardDescription>
       </CardHeader>
 
@@ -309,12 +310,12 @@ export default function LoginForm() {
                 <label className="text-sm font-medium">Account Type</label>
                 <select
                   value={role}
-                  onChange={(e) => setRole(e.target.value as 'client' | 'admin')}
+                  onChange={(e) => setRole(e.target.value as 'INDIVIDUAL' | 'BUSINESS')}
                   disabled={loading}
                   className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                 >
-                  <option value="client">Client</option>
-                  <option value="admin">Admin</option>
+                  <option value="INDIVIDUAL">Individual</option>
+                  <option value="BUSINESS">Business</option>
                 </select>
               </div>
 
@@ -384,7 +385,7 @@ export default function LoginForm() {
                 type="button"
                 variant="outline"
                 disabled={loading}
-                onClick={() => handleSimulatedLogin('Microsoft')}
+                onClick={() => handleOAuthSignIn('microsoft')}
                 className="w-full"
               >
                 <MailIcon className="mr-2 h-4 w-4" />
@@ -395,22 +396,11 @@ export default function LoginForm() {
                 type="button"
                 variant="outline"
                 disabled={loading}
-                onClick={() => handleSimulatedLogin('Apple')}
+                onClick={() => handleOAuthSignIn('apple')}
                 className="w-full"
               >
                 <Apple className="mr-2 h-4 w-4" />
                 Apple
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                onClick={() => handleSimulatedLogin('Yahoo')}
-                className="w-full"
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Yahoo
               </Button>
             </div>
           </>

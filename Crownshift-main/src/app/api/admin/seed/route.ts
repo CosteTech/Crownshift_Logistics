@@ -11,7 +11,7 @@ import { getAdminAuth, getFirestoreAdmin } from '@/firebase/server-init';
 export async function POST(req: Request) {
   try {
     const adminSecret = process.env.SEED_ADMIN_TOKEN;
-    const adminUid = process.env.ADMIN_UID || process.env.NEXT_PUBLIC_ADMIN_UID;
+    const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID;
 
     const headers = req.headers;
     const providedSecret = headers.get('x-admin-token');

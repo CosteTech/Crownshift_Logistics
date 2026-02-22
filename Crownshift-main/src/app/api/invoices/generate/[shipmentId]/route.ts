@@ -47,7 +47,7 @@ export async function GET(request: any, context: any) {
 
     // upload to Storage
     const adminApp = getAdminApp();
-    const bucket = adminApp.storage().bucket(process.env.FIREBASE_STORAGE_BUCKET);
+    const bucket = adminApp.storage().bucket(process.env.FIREBASE_ADMIN_STORAGE_BUCKET || 'crownshift-logistics.firebasestorage.app');
     const filePath = `invoices/${shipmentId}.pdf`;
     const file = bucket.file(filePath);
     await file.save(buffer, { contentType: 'application/pdf' });
