@@ -21,7 +21,9 @@ export default async function ShipmentDetailPage({ params }: { params: { id: str
     const db = getFirestoreAdmin();
     const doc = await db.collection('shipments').doc(params.id).get();
     if (!doc.exists) return <div>Shipment not found</div>;
-    const shipment = doc.data();
+    const shipmentData = doc.data();
+    if (!shipmentData) return <div>Shipment not found</div>;
+    const shipment = shipmentData as any;
 
     // Ensure the user owns this shipment or is admin
     const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
