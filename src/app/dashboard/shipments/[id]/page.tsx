@@ -9,8 +9,8 @@ export async function generateMetadata({ params }: { params: { id: string } }) {
 }
 
 export default async function ShipmentDetailPage({ params }: { params: { id: string } }) {
-  const cookieStore = cookies();
-  const session = cookieStore.get('session')?.value;
+  const cookieStore = await cookies();
+  const session = cookieStore.get('__session')?.value;
   if (!session) return redirect('/login');
 
   try {

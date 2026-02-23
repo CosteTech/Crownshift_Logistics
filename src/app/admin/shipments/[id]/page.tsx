@@ -2,9 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDoc, WithId } from '@/firebase/firestore/use-doc';
-import { useFirebase, useMemoFirebase } from '@/firebase';
-import { doc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -56,26 +54,55 @@ interface ShipmentDoc {
 
 export default function ShipmentEditPage() {
   const params = useParams();
-  // Normalize id: handle undefined or array cases
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const isNew = id === 'new';
   const router = useRouter();
-  const { firestore } = useFirebase();
+  const { auth, user, isUserLoading } = useFirebase();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [shipment, setShipment] = useState<ShipmentDoc | null>(null);
+  const [isLoading, setIsLoading] = useState(!isNew && !!id);
+  const [error, setError] = useState<string | null>(null);
 
   if (!id) {
     return <div className="text-center text-destructive">Invalid shipment ID</div>;
   }
 
-  const shouldFetch = !!firestore && !isNew && !!id;
-  const shipmentRef = useMemoFirebase(() => {
-    return shouldFetch ? doc(firestore!, 'shipments', id) : null;
-  }, [firestore, id, shouldFetch]);
-
-  const { data: shipment, isLoading, error } = useDoc<ShipmentDoc>(
-    shouldFetch ? shipmentRef : undefined
-  );
+  useEffect(() => {
+    if (isNew || !id || !auth) {
+      if (isNew) setIsLoading(false);
+      return;
+    }
+    if (!user) return;
+    let cancelled = false;
+    async function fetchShipment() {
+      try {
+        const token = await user.getIdToken();
+        const res = await fetch(`/api/admin/shipments/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (cancelled) return;
+        if (!res.ok) {
+          const json = await res.json().catch(() => ({}));
+          setError(json?.error || res.statusText || 'Failed to load shipment');
+          setIsLoading(false);
+          return;
+        }
+        const data = await res.json();
+        setShipment(data);
+        setError(null);
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e.message : 'Failed to load shipment');
+          setShipment(null);
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    }
+    fetchShipment();
+    return () => { cancelled = true; };
+  }, [auth, user, id, isNew]);
 
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<ShipmentFormData>({
     resolver: zodResolver(shipmentSchema),
@@ -95,18 +122,21 @@ export default function ShipmentEditPage() {
   useEffect(() => {
     if (shipment && !isNew) {
       const estimatedDelivery = shipment.estimatedDeliveryDate
-        ? new Date(shipment.estimatedDeliveryDate)
+        ? new Date(shipment.estimatedDeliveryDate as string | Date)
         : new Date();
+      const parseDate = (d: unknown) =>
+        d && typeof (d as { toDate?: () => Date }).toDate === 'function'
+          ? (d as { toDate: () => Date }).toDate()
+          : d ? new Date(d as string) : new Date();
       reset({
         ...shipment,
         estimatedDeliveryDate: estimatedDelivery,
-        history: shipment.history?.map((h: any) => ({ ...h, date: h.date.toDate() })) || [],
+        history: shipment.history?.map((h: any) => ({ ...h, date: parseDate(h.date) })) || [],
       });
     }
   }, [shipment, reset, isNew]);
 
   const onSubmit = async (data: ShipmentFormData) => {
-    if (!firestore) return;
     setIsSubmitting(true);
     
     const dataToSave = {
@@ -148,11 +178,15 @@ export default function ShipmentEditPage() {
     }
   };
 
-  if (isLoading) {
+  const showLoading = isLoading || (isUserLoading && !user && !isNew && !!id);
+  if (showLoading) {
     return <div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
+  if (!isNew && !!id && !isUserLoading && !user) {
+    return <div className="text-center text-destructive">Please sign in to view this shipment.</div>;
+  }
   if (error) {
-    return <div className="text-center text-destructive">Error: {error.message}</div>;
+    return <div className="text-center text-destructive">Error: {error}</div>;
   }
   if (!isNew && !shipment && !isLoading) {
     return <div className="text-center">Shipment not found.</div>;
