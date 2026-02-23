@@ -27,6 +27,17 @@ export async function logoutAction() {
   // Clear the session cookie
   cookieStore.delete('__session');
   
+  // Also notify the server to clear any remaining session data
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.split('.')[0] || 'http://localhost:3000'}/api/auth/session`, {
+      method: 'DELETE',
+    }).catch(() => {
+      // Ignore fetch errors - cookie is already deleted
+    });
+  } catch (e) {
+    // Ignore
+  }
+  
   // Redirect to home page
   redirect('/');
 }

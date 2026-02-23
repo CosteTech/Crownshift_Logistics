@@ -62,19 +62,33 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
+      let userCredential;
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        userCredential = await signInWithEmailAndPassword(auth, email, password);
         toast({
           title: 'Success',
           description: 'Logged in successfully',
         });
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        userCredential = await createUserWithEmailAndPassword(auth, email, password);
         toast({
           title: 'Success',
           description: 'Account created successfully',
         });
       }
+
+      // Get the ID token and send it to the server to create a session cookie
+      const idToken = await userCredential.user.getIdToken();
+      const sessionRes = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionRes.ok) {
+        throw new Error('Failed to create session');
+      }
+
       // Redirect after successful auth
       router.replace(callbackUrl);
     } catch (error) {
@@ -93,7 +107,20 @@ export default function LoginForm() {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const userCredential = await signInWithPopup(auth, provider);
+      
+      // Get the ID token and send it to the server to create a session cookie
+      const idToken = await userCredential.user.getIdToken();
+      const sessionRes = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!sessionRes.ok) {
+        throw new Error('Failed to create session');
+      }
+
       toast({
         title: 'Success',
         description: 'Signed in with Google',
