@@ -1,31 +1,42 @@
+import { notFound } from 'next/navigation';
+import { getVisibleServices } from '@/lib/seed';
 import { generatePageMetadata } from '@/lib/seo-metadata';
-import { getServices } from '@/app/actions';
+
+type Params = { slug: string };
+
+async function findService(slug: string) {
+  const services = await getVisibleServices();
+  return services.find((s: any) => (s.slug || s.id) === slug) || null;
+}
 
 export async function generateStaticParams() {
   try {
-    const res = await getServices();
-    if (!res.success) return [];
-    return (res.data || []).map((s: any) => ({ slug: s.slug || s.id }));
+    const services = await getVisibleServices();
+    return services.map((s: any) => ({ slug: s.slug || s.id }));
   } catch {
     return [];
   }
 }
 
-export default async function ServiceDetail({ params }: { params: { slug: string } }) {
-  try {
-    const res = await getServices();
-    if (!res.success) throw new Error(res.error || 'Failed to fetch');
-    const services = res.data || [];
-    const service = services.find((s: any) => (s.slug || s.id) === params.slug);
-    if (!service) {
-      return (
-        <div className="container py-16">Service not found.</div>
-      );
-    }
+export async function generateMetadata({ params }: { params: Params }) {
+  const service = await findService(params.slug);
+  if (!service) {
+    return generatePageMetadata('Service', 'Service details', `/services/${params.slug}`);
+  }
 
-    const metadata = generatePageMetadata(service.title || 'Service', service.description || '', `/services/${params.slug}`);
-    // @ts-ignore
-    ServiceDetail.metadata = metadata;
+  return generatePageMetadata(
+    service.title || 'Service',
+    service.description || '',
+    `/services/${params.slug}`
+  );
+}
+
+export default async function ServiceDetail({ params }: { params: Params }) {
+  try {
+    const service = await findService(params.slug);
+    if (!service) {
+      notFound();
+    }
 
     return (
       <section className="container py-16">

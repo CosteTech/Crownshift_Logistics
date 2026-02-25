@@ -1,6 +1,7 @@
 import winston from 'winston';
 
 const isProduction = process.env.NODE_ENV === 'production';
+const enableFileLogs = isProduction && process.env.ENABLE_FILE_LOGS === 'true' && !process.env.VERCEL;
 
 // Create Winston logger for structured logging
 export const logger = winston.createLogger({
@@ -23,8 +24,8 @@ export const logger = winston.createLogger({
             })
           ),
     }),
-    // Log errors to file in production
-    ...(isProduction ? [
+    // Opt-in file logging only for writable environments (not Vercel serverless).
+    ...(enableFileLogs ? [
       new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
       new winston.transports.File({ filename: 'logs/combined.log' }),
     ] : []),

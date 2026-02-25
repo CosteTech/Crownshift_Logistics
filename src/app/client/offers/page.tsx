@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getServices } from '@/app/actions';
+import { getPublicServices } from '@/app/actions';
 import { getActiveOffers } from '@/lib/offers';
 import PromoBanner from '@/components/PromoBanner';
 import { EmptyState } from '@/components/EmptyState';
@@ -25,7 +25,7 @@ export default function OffersPage() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const result = await getServices();
+        const result = await getPublicServices();
         if (result.success) {
           setServices(result.data || []);
         }

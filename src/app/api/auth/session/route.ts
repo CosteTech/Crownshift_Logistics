@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getFirestoreAdmin } from '@/firebase/server-init';
+import { getAdminAuth } from '@/firebase/server-init';
 
 /**
  * POST /api/auth/session

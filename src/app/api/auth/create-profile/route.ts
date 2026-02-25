@@ -13,28 +13,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Require authenticated token and ensure companyId matches token
+    // Require auth and only allow creating/updating your own profile.
+    let decoded: any;
     try {
-      const { requireCompanyFromRequest } = await import('@/lib/companyContext');
-      const res = await requireCompanyFromRequest(request.headers, companyId);
-      // Only allow creating users within the caller's company
-      if (!res || res.companyId !== companyId) {
+      const { getAuthFromRequest } = await import('@/lib/companyContext');
+      const authRes = await getAuthFromRequest(request.headers);
+      decoded = authRes.decoded;
+
+      if (!decoded || decoded.uid !== userId) {
         return NextResponse.json({ error: 'forbidden' }, { status: 403 });
       }
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'unauthorized' }, { status: 401 });
     }
 
-    const db = await getFirestoreAdmin();
+    const db = getFirestoreAdmin();
+    const existingUser = await db.collection('users').doc(userId).get();
+    const existingCompanyId = (existingUser.data() as any)?.companyId;
+    const resolvedCompanyId =
+      companyId ||
+      decoded?.companyId ||
+      existingCompanyId ||
+      process.env.DEFAULT_COMPANY_ID ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+      null;
 
-    // Create or update user profile in Firestore (use companyId field)
-    // Server sets role to 'user' — do NOT store client-provided role
     await db.collection('users').doc(userId).set(
       {
         email,
         fullName: fullName || '',
-        role: 'user', // Always 'user' — admin determined by UID only
-        companyId: companyId || null,
+        role: 'user',
+        companyId: resolvedCompanyId,
         updatedAt: new Date(),
       },
       { merge: true }

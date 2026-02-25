@@ -187,6 +187,27 @@ export async function getServices() {
   }
 }
 
+// Public, non-tenant-scoped read for marketing/client pages.
+export async function getPublicServices() {
+  try {
+    const db = await getFirestoreAdmin();
+    const snapshot = await db.collection('services').get();
+    const services: any[] = [];
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.isVisible !== false) {
+        services.push({ id: doc.id, ...data });
+      }
+    });
+    return { success: true, data: services };
+  } catch (error) {
+    logger.error('Error fetching public services', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { success: false, error: 'Failed to fetch public services' };
+  }
+}
+
 export async function addService(data: {
   title: string;
   description: string;
@@ -295,6 +316,24 @@ export async function getActiveOffers() {
   } catch (error) {
     logger.error('Error fetching active offers', { error: error instanceof Error ? error.message : String(error) });
     return { success: false, error: 'Failed to fetch active offers' };
+  }
+}
+
+// Public, non-tenant-scoped read for homepage/client offers display.
+export async function getPublicActiveOffers() {
+  try {
+    const db = await getFirestoreAdmin();
+    const snapshot = await db.collection('offers').where('isActive', '==', true).get();
+    const offers: any[] = [];
+    snapshot.forEach((doc) => {
+      offers.push({ id: doc.id, ...doc.data() });
+    });
+    return { success: true, data: offers };
+  } catch (error) {
+    logger.error('Error fetching public active offers', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { success: false, error: 'Failed to fetch public active offers' };
   }
 }
 

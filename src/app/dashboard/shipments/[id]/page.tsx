@@ -15,7 +15,7 @@ export default async function ShipmentDetailPage({ params }: { params: { id: str
 
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(session).catch(() => null);
+    const decoded = await auth.verifySessionCookie(session, true).catch(() => null);
     if (!decoded) return redirect('/login');
 
     const db = getFirestoreAdmin();

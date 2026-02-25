@@ -2,52 +2,51 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
-// Minimal Edge-safe middleware protecting /admin routes.
-// - No filesystem or Node.js APIs
-// - Only checks presence of '__session' cookie
-// - Fails open (never throws), redirects unauthenticated users to /admin/login
-
-const ADMIN_BASE = '/admin';
-const ADMIN_LOGIN = '/admin/login';
-const EXCLUDE_PREFIXES = ['/_next/', '/api/', '/public/', '/favicon.ico', '/robots.txt', '/.well-known/'];
+// Use exact matches for paths to avoid accidental 404s
+const ADMIN_PATH = '/admin';
+const LOGIN_PATH = '/admin/login';
 
 export function middleware(request: NextRequest) {
-  try {
-    const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-    // Fast exits for static and API assets
-    if (EXCLUDE_PREFIXES.some((p) => pathname.startsWith(p))) {
-      return NextResponse.next();
-    }
-
-    // Only apply logic to admin paths
-    if (!pathname.startsWith(ADMIN_BASE)) {
-      return NextResponse.next();
-    }
-
-    // Always allow the login page
-    if (pathname === ADMIN_LOGIN || pathname.startsWith(`${ADMIN_LOGIN}/`)) {
-      return NextResponse.next();
-    }
-
-    // Check cookie presence only. Do not parse or assume structure here.
-    const session = request.cookies.get('__session')?.value;
-    if (!session) {
-      const url = request.nextUrl.clone();
-      url.pathname = ADMIN_LOGIN;
-      url.searchParams.set('callbackUrl', pathname);
-      return NextResponse.redirect(url);
-    }
-
-    return NextResponse.next();
-  } catch (err) {
-    // Fail open: log and let the request continue. Avoid Node-specific APIs.
-    // eslint-disable-next-line no-console
-    console.error('Middleware error:', err instanceof Error ? err.message : String(err));
+  // 1. Let internal Next.js and static files pass through immediately
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.includes('.') // catches .png, .ico, etc.
+  ) {
     return NextResponse.next();
   }
+
+  // 2. Admin Protection Logic
+  if (pathname.startsWith(ADMIN_PATH) && pathname !== LOGIN_PATH) {
+    const session = request.cookies.get('__session')?.value;
+
+    if (!session) {
+      // Use the helper to create an absolute URL for the redirect
+      const loginUrl = new URL(LOGIN_PATH, request.url);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // 3. Add Security Headers to all valid requests
+  const response = NextResponse.next();
+  return addSecurityHeaders(response);
+}
+
+function addSecurityHeaders(response: NextResponse) {
+  const h = response.headers;
+  h.set('X-Frame-Options', 'DENY');
+  h.set('X-Content-Type-Options', 'nosniff');
+  h.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  h.set(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' *.firebaseio.com *.googleapis.com;"
+  );
+  return response;
 }
 
 export const config = {
-  matcher: ['/admin', '/admin/:path*'],
+  // Cleaner matcher that stays away from system files
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

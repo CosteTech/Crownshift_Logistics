@@ -27,7 +27,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, id: docRef.id });
   } catch (err: any) {
     console.error('Create shipment error', err);
-    return NextResponse.json({ error: err?.message || 'create error' }, { status: 500 });
+    const message = err?.message || 'create error';
+    const status =
+      message.includes('Missing authentication token') || message.includes('Invalid token') ? 401 :
+      message.includes('companyId mismatch') || message.includes('Token missing companyId claim') ? 403 :
+      500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 
@@ -61,6 +66,11 @@ export async function PUT(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error('Update shipment error', err);
-    return NextResponse.json({ error: err?.message || 'update error' }, { status: 500 });
+    const message = err?.message || 'update error';
+    const status =
+      message.includes('Missing authentication token') || message.includes('Invalid token') ? 401 :
+      message.includes('companyId mismatch') || message.includes('Token missing companyId claim') ? 403 :
+      500;
+    return NextResponse.json({ error: message }, { status });
   }
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { getActiveOffers, getServices } from '@/app/actions';
+import { getPublicActiveOffers, getPublicServices } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -36,8 +36,8 @@ export function OffersCarousel() {
     const fetchData = async () => {
       try {
         const [offersResult, servicesResult] = await Promise.all([
-          getActiveOffers(),
-          getServices(),
+          getPublicActiveOffers(),
+          getPublicServices(),
         ]);
 
         if (offersResult.success) {

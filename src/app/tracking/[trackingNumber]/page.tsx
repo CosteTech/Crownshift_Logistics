@@ -24,7 +24,7 @@ export default async function TrackingPage({ params }: { params: { trackingNumbe
 
   try {
     const auth = getAdminAuth();
-    const decoded = await auth.verifyIdToken(session).catch(() => null);
+    const decoded = await auth.verifySessionCookie(session, true).catch(() => null);
     if (!decoded) {
       redirect('/login?callbackUrl=' + encodeURIComponent(`/tracking/${params.trackingNumber}`));
     }
