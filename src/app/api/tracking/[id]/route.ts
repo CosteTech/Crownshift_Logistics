@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getFirestoreAdmin } from "@/firebase/server-init";
+import { serializeShipment } from "@/lib/firestore-serializers";
 
 /**
  * Server-side tracking lookup endpoint
@@ -15,16 +16,17 @@ export async function GET(request: any, context: any) {
     const docRef = db.collection("shipments").doc(params.id);
     const snap = await docRef.get();
     if (!snap.exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const shipment = serializeShipment(snap.data(), snap.id) as any;
 
     // Require token company match shipment.companyId
     try {
       const { requireCompanyFromRequest } = await import('@/lib/companyContext');
-      await requireCompanyFromRequest(request.headers, snap.data().companyId);
+      await requireCompanyFromRequest(request.headers, shipment.companyId);
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json(snap.data());
+    return NextResponse.json(shipment);
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Unavailable" }, { status: 500 });
   }

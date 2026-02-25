@@ -2,6 +2,7 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { getFirestoreAdmin, getAdminAuth } from '@/firebase/server-init';
+import { serializeShipment } from '@/lib/firestore-serializers';
 
 export const metadata = {
   title: 'Dashboard — Crownshift',
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
 
     const db = getFirestoreAdmin();
     const res = await db.collection('shipments').where('customerId', '==', decoded.uid).orderBy('createdAt', 'desc').limit(50).get();
-    const shipments = res.docs.map((d: any) => ({ id: d.id, ...d.data() }));
+    const shipments = res.docs.map((d: any) => serializeShipment(d.data(), d.id));
 
     return (
       <div>

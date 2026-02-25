@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getFirestoreAdmin, verifyAdminToken } from '@/firebase/server-init';
+import { serializeShipment } from '@/lib/firestore-serializers';
 
 /**
  * Admin shipment fetch endpoint
@@ -31,7 +32,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
-    const data = { id: snap.id, ...shipData };
+    const data = serializeShipment(shipData, snap.id);
     return NextResponse.json(data);
   } catch (err: unknown) {
     return NextResponse.json(

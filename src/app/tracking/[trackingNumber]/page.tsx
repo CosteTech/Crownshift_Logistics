@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { getFirestoreAdmin, getAdminAuth } from '@/firebase/server-init';
 import ShipmentTimeline from '@/components/ShipmentTimeline';
 import { Shipment } from '@/lib/firestore-models';
+import { serializeShipment } from '@/lib/firestore-serializers';
 
 /**
  * Server-side tracking page
@@ -47,7 +48,10 @@ export default async function TrackingPage({ params }: { params: { trackingNumbe
     }
 
     const shipmentDoc = snapshot.docs[0];
-    const shipment = { id: shipmentDoc.id, ...shipmentDoc.data() } as Shipment & { customerId: string; companyId: string };
+    const shipment = serializeShipment(shipmentDoc.data(), shipmentDoc.id) as Shipment & {
+      customerId: string;
+      companyId: string;
+    };
 
     // Authorization: User must own shipment OR be admin for the company
     const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;

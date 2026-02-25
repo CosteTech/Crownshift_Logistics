@@ -6,9 +6,13 @@ import { redirect } from 'next/navigation';
 import { generateInstantQuote } from '@/ai/flows/instant-quote-generation';
 import { z } from 'zod';
 import { getFirestoreAdmin } from '@/firebase/server-init';
-import { FieldValue } from 'firebase-admin/firestore';
 import { isServiceDeletable, isFAQDeletable, isDefaultService, isDefaultFAQ } from '@/lib/data-models';
 import { logger } from '@/lib/logger';
+import {
+  serializeFAQ,
+  serializeFirestoreDoc,
+  serializeService,
+} from '@/lib/firestore-serializers';
 
 // Helper: require company from server cookie context
 async function requireCompanyFromServer() {
@@ -104,7 +108,7 @@ export async function getUserProfile(userId: string) {
       if (data?.companyId && data.companyId !== companyId) return { success: false, error: 'Forbidden' };
     } catch { /* no token available, allow */ }
 
-    return { success: true, data: doc.data() };
+    return { success: true, data: serializeFirestoreDoc(doc.data(), doc.id) };
   } catch (error) {
     logger.error('Error fetching user profile', { error: error instanceof Error ? error.message : String(error) });
     return { success: false, error: 'Failed to fetch user profile' };
@@ -178,7 +182,7 @@ export async function getServices() {
     const snapshot = await db.collection('services').where('companyId', '==', companyId).get();
     const services: any[] = [];
     snapshot.forEach((doc) => {
-      services.push({ id: doc.id, ...doc.data() });
+      services.push(serializeService(doc.data(), doc.id));
     });
     return { success: true, data: services };
   } catch (error) {
@@ -196,7 +200,7 @@ export async function getPublicServices() {
     snapshot.forEach((doc) => {
       const data = doc.data();
       if (data.isVisible !== false) {
-        services.push({ id: doc.id, ...data });
+        services.push(serializeService(data, doc.id));
       }
     });
     return { success: true, data: services };
@@ -290,7 +294,7 @@ export async function getOffers() {
     const snapshot = await db.collection('offers').where('companyId', '==', companyId).get();
     const offers: any[] = [];
     snapshot.forEach((doc) => {
-      offers.push({ id: doc.id, ...doc.data() });
+      offers.push(serializeFirestoreDoc(doc.data(), doc.id));
     });
     return { success: true, data: offers };
   } catch (error) {
@@ -310,7 +314,7 @@ export async function getActiveOffers() {
       .get();
     const offers: any[] = [];
     snapshot.forEach((doc) => {
-      offers.push({ id: doc.id, ...doc.data() });
+      offers.push(serializeFirestoreDoc(doc.data(), doc.id));
     });
     return { success: true, data: offers };
   } catch (error) {
@@ -326,7 +330,7 @@ export async function getPublicActiveOffers() {
     const snapshot = await db.collection('offers').where('isActive', '==', true).get();
     const offers: any[] = [];
     snapshot.forEach((doc) => {
-      offers.push({ id: doc.id, ...doc.data() });
+      offers.push(serializeFirestoreDoc(doc.data(), doc.id));
     });
     return { success: true, data: offers };
   } catch (error) {
@@ -413,7 +417,7 @@ export async function getApprovedReviews() {
       .get();
     const reviews: any[] = [];
     snapshot.forEach((doc) => {
-      reviews.push({ id: doc.id, ...doc.data() });
+      reviews.push(serializeFirestoreDoc(doc.data(), doc.id));
     });
     return { success: true, data: reviews };
   } catch (error) {
@@ -483,7 +487,7 @@ export async function getPendingReviews() {
       .get();
     const reviews: any[] = [];
     snapshot.forEach((doc) => {
-      reviews.push({ id: doc.id, ...doc.data() });
+      reviews.push(serializeFirestoreDoc(doc.data(), doc.id));
     });
     return { success: true, data: reviews };
   } catch (error) {
@@ -555,12 +559,10 @@ export async function getFAQs() {
     const faqs: any[] = [];
     snapshot.forEach((doc) => {
       const data = doc.data();
-      faqs.push({ 
-        id: doc.id,
-        ...data,
-        isDefault: data.isDefault || false,
-        isVisible: data.isVisible !== false,
-      });
+      const faq = serializeFAQ(data, doc.id) as any;
+      faq.isDefault = data.isDefault || false;
+      faq.isVisible = data.isVisible !== false;
+      faqs.push(faq);
     });
     return { success: true, data: faqs };
   } catch (error) {
@@ -697,3 +699,5 @@ export async function getTotalBookings() {
     return { success: false, error: 'Failed to fetch booking count' };
   }
 }
+
+

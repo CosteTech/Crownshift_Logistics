@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getFirestoreAdmin, getAdminAuth } from '@/firebase/server-init';
 import ShipmentTimeline from '@/components/ShipmentTimeline';
+import { serializeShipment } from '@/lib/firestore-serializers';
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   return { title: `Shipment ${params.id} — Dashboard` };
@@ -23,7 +24,7 @@ export default async function ShipmentDetailPage({ params }: { params: { id: str
     if (!doc.exists) return <div>Shipment not found</div>;
     const shipmentData = doc.data();
     if (!shipmentData) return <div>Shipment not found</div>;
-    const shipment = shipmentData as any;
+    const shipment = serializeShipment(shipmentData, doc.id) as any;
 
     // Ensure the user owns this shipment or is admin
     const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
