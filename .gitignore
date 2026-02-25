@@ -46,6 +46,13 @@ firestore-debug.log
 .vercel
 .env*.local
 
+# Firebase Admin SDK service account keys (VERY sensitive)
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
+
+# Specifically for Crownshift project
+crownshiftlogistics-firebase-adminsdk-*.json
+
 # root-only artifacts
 /PROJECT_STRUCTURE_2025.txt
 /Crownshift_Logistics_Project_Tree.pdf
