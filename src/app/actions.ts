@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { generateInstantQuote } from '@/ai/flows/instant-quote-generation';
 import { z } from 'zod';
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 import { isServiceDeletable, isFAQDeletable, isDefaultService, isDefaultFAQ } from '@/lib/data-models';
 import { logger } from '@/lib/logger';
 import {
@@ -699,5 +699,6 @@ export async function getTotalBookings() {
     return { success: false, error: 'Failed to fetch booking count' };
   }
 }
+
 
 

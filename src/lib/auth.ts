@@ -1,4 +1,4 @@
-import { getAdminAuth } from '@/firebase/server-init';
+import { getAdminAuth } from '@/firebase/admin';
 
 /**
  * Verify an ID token (from Authorization header or session cookie) and return decoded token
@@ -23,3 +23,4 @@ export function extractTokenFromHeaders(headers: Headers | { get: (k: string) =>
   if (auth && auth.startsWith('Bearer ')) return auth.replace(/^Bearer\s+/i, '');
   return null;
 }
+

@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 
 export async function POST(request: Request) {
   try {
@@ -47,3 +49,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+

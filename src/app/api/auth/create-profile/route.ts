@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,3 +63,5 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+

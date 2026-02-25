@@ -1,6 +1,6 @@
 import { logoutAction } from "@/app/actions";
-import { getAdminAuth } from "@/firebase/server-init";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import AdminNavbar from "@/components/admin/Navbar";
 
@@ -14,22 +14,38 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('__session')?.value;
+  const sessionCookie = cookieStore.get("__session")?.value;
+
+  if (!sessionCookie) {
+    redirect("/admin/login?callbackUrl=/admin");
+  }
 
   let displayName = "Admin";
 
   try {
-    if (sessionCookie) {
-      const auth = getAdminAuth();
-      const decodedToken = await auth.verifySessionCookie(sessionCookie);
-      const user = await auth.getUser(decodedToken.uid);
-      if (user.email) {
-        const emailName = user.email.split('@')[0];
-        displayName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
-      }
+    const headerStore = await headers();
+    const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+    const protocol = headerStore.get("x-forwarded-proto") ?? "https";
+    const baseUrl =
+      process.env.NEXT_PUBLIC_BASE_URL || (host ? `${protocol}://${host}` : "http://localhost:3000");
+
+    const verifyResponse = await fetch(`${baseUrl}/api/admin/verify`, {
+      method: "GET",
+      headers: { cookie: cookieStore.toString() },
+      cache: "no-store",
+    });
+
+    if (!verifyResponse.ok) {
+      redirect("/admin/login?callbackUrl=/admin");
+    }
+
+    const verifyData = (await verifyResponse.json()) as { displayName?: string };
+    if (verifyData.displayName) {
+      displayName = verifyData.displayName;
     }
   } catch (error) {
-    console.error("Layout Auth Error:", error);
+    console.error("Admin layout verification failed:", error);
+    redirect("/admin/login?callbackUrl=/admin");
   }
 
   return (
@@ -73,3 +89,4 @@ export default async function AdminLayout({
     </div>
   );
 }
+

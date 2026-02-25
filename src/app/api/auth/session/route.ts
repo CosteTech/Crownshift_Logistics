@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth } from '@/firebase/server-init';
+import { getAdminAuth } from '@/firebase/admin';
 
 /**
  * POST /api/auth/session
@@ -107,3 +109,5 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
+
+

@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 
 // Create or update shipments with server-side company enforcement
 export async function POST(request: Request) {
@@ -74,3 +76,5 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: message }, { status });
   }
 }
+
+

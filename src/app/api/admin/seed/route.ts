@@ -1,6 +1,8 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
 import { seedDefaultServices, seedDefaultFAQs } from '@/lib/seed';
-import { getAdminAuth, getFirestoreAdmin } from '@/firebase/server-init';
+import { getAdminAuth, getFirestoreAdmin } from '@/firebase/admin';
 
 // Protected seeder endpoint
 // Authentication options (either):
@@ -77,3 +79,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: (error as Error).message || String(error) }, { status: 500 });
   }
 }
+
+

@@ -1,7 +1,9 @@
+export const runtime = "nodejs";
+
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getFirestoreAdmin, getAdminAuth } from '@/firebase/server-init';
+import { getFirestoreAdmin, getAdminAuth } from '@/firebase/admin';
 import ShipmentTimeline from '@/components/ShipmentTimeline';
 import { Shipment } from '@/lib/firestore-models';
 import { serializeShipment } from '@/lib/firestore-serializers';
@@ -118,3 +120,4 @@ export default async function TrackingPage({ params }: { params: { trackingNumbe
     );
   }
 }
+

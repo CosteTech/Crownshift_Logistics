@@ -1,7 +1,9 @@
+export const runtime = "nodejs";
+
 import React from 'react';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getFirestoreAdmin, getAdminAuth } from '@/firebase/server-init';
+import { getFirestoreAdmin, getAdminAuth } from '@/firebase/admin';
 import ShipmentTimeline from '@/components/ShipmentTimeline';
 import { serializeShipment } from '@/lib/firestore-serializers';
 
@@ -47,3 +49,4 @@ export default async function ShipmentDetailPage({ params }: { params: { id: str
     return <div className="text-red-600">Unable to load shipment.</div>;
   }
 }
+

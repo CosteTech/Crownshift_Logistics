@@ -1,4 +1,4 @@
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 import { logger } from '@/lib/logger';
 
 export type RetryableOperation = 'payment_processing' | 'inventory_reservation' | 'fleet_assignment' | 'webhook_processing';
@@ -336,3 +336,4 @@ export default {
   getDeadLetterItems,
   replayDeadLetterItem,
 };
+

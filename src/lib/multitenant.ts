@@ -1,4 +1,4 @@
-import { getAdminAuth } from '@/firebase/server-init';
+import { getAdminAuth } from '@/firebase/admin';
 
 export async function verifyAdminForCompany(idToken: string | undefined, companyId: string) {
   if (!idToken) return false;
@@ -19,3 +19,4 @@ export function extractCompanyFromToken(decoded: any): string | null {
   if (!decoded) return null;
   return decoded.companyId || null;
 }
+

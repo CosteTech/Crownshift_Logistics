@@ -1,4 +1,4 @@
-import { getAdminAuth, getFirestoreAdmin } from '@/firebase/server-init';
+import { getAdminAuth, getFirestoreAdmin } from '@/firebase/admin';
 
 type HeaderLike = Headers | Record<string, string> | undefined;
 type DecodedToken = { uid: string; companyId?: string };
@@ -92,3 +92,4 @@ export async function extractCompanyFromRequest(headers?: HeaderLike) {
 }
 
 export default requireCompanyFromRequest;
+

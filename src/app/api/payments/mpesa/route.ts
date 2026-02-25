@@ -1,6 +1,8 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 
 // Note: This is a minimal STK Push scaffold. Configure env vars:
 // MPESA_CONSUMER_KEY, MPESA_CONSUMER_SECRET, MPESA_SHORTCODE, MPESA_PASSKEY, MPESA_ENV (sandbox|prod)
@@ -71,3 +73,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err?.message || 'mpesa error' }, { status: 500 });
   }
 }
+
+

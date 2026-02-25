@@ -1,4 +1,4 @@
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 
 /**
  * Simple ETA predictor that uses historical delivered shipment durations
@@ -50,3 +50,4 @@ export async function predictAndSaveETA(shipment: any) {
     throw err;
   }
 }
+

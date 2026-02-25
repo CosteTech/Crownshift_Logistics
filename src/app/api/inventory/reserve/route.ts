@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 
 type ReserveItem = { sku: string; warehouseId: string; quantity: number };
 
@@ -55,3 +57,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+

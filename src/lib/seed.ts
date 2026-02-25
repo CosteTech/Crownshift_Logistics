@@ -3,7 +3,7 @@
  * Automatically initializes the database with defaults
  */
 
-import { getFirestoreAdmin } from '@/firebase/server-init';
+import { getFirestoreAdmin } from '@/firebase/admin';
 import { DEFAULT_SERVICES, DEFAULT_FAQS, Service, FAQ } from '@/lib/data-models';
 
 /**
@@ -192,3 +192,4 @@ export async function getVisibleFAQs(): Promise<FAQ[]> {
   const faqs = await getAllFAQs();
   return faqs.filter(f => f.isVisible);
 }
+

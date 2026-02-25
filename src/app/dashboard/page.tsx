@@ -1,7 +1,9 @@
+export const runtime = "nodejs";
+
 import React from 'react';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getFirestoreAdmin, getAdminAuth } from '@/firebase/server-init';
+import { getFirestoreAdmin, getAdminAuth } from '@/firebase/admin';
 import { serializeShipment } from '@/lib/firestore-serializers';
 
 export const metadata = {
@@ -44,3 +46,4 @@ export default async function DashboardPage() {
     return <div className="text-red-600">Unable to load dashboard.</div>;
   }
 }
+

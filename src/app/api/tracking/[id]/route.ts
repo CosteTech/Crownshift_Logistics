@@ -1,6 +1,8 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getFirestoreAdmin } from "@/firebase/server-init";
+import { getFirestoreAdmin } from "@/firebase/admin";
 import { serializeShipment } from "@/lib/firestore-serializers";
 
 /**
@@ -31,3 +33,5 @@ export async function GET(request: any, context: any) {
     return NextResponse.json({ error: err?.message || "Unavailable" }, { status: 500 });
   }
 }
+
+

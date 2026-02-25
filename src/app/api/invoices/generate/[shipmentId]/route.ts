@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
 import getStream from 'get-stream';
-import { getFirestoreAdmin, getAdminApp } from '@/firebase/server-init';
+import { getFirestoreAdmin, getAdminApp } from '@/firebase/admin';
 
 export async function GET(request: any, context: any) {
   const params = context?.params || {};
@@ -65,3 +65,4 @@ export async function GET(request: any, context: any) {
     return NextResponse.json({ error: err.message || 'invoice error' }, { status: 500 });
   }
 }
+

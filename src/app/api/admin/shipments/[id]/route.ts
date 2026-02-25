@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from 'next/server';
-import { getFirestoreAdmin, verifyAdminToken } from '@/firebase/server-init';
+import { getFirestoreAdmin, verifyAdminToken } from '@/firebase/admin';
 import { serializeShipment } from '@/lib/firestore-serializers';
 
 /**
@@ -41,3 +43,5 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     );
   }
 }
+
+

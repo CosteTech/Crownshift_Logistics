@@ -1,5 +1,7 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
-import { getFirestoreAdmin, verifyAdminToken } from "@/firebase/server-init";
+import { getFirestoreAdmin, verifyAdminToken } from "@/firebase/admin";
 
 /**
  * Admin shipment update endpoint
@@ -44,3 +46,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: err?.message || "server error" }, { status: 500 });
   }
 }
+
+
