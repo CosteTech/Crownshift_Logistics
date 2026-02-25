@@ -45,3 +45,11 @@ firebase-debug.log
 firestore-debug.log
 .vercel
 .env*.local
+
+# root-only artifacts
+/PROJECT_STRUCTURE_2025.txt
+/Crownshift_Logistics_Project_Tree.pdf
+/PROJECT_TREE.txt
+/source-tree.txt
+/build-*.txt
+/build-*.log
