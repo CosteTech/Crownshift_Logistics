@@ -1,132 +1,72 @@
-
 'use server';
 
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { generateInstantQuote } from '@/ai/flows/instant-quote-generation';
 import { z } from 'zod';
-import { getFirestoreAdmin } from '@/firebase/admin';
-import { isServiceDeletable, isFAQDeletable, isDefaultService, isDefaultFAQ } from '@/lib/data-models';
+import { generateInstantQuote } from '@/ai/flows/instant-quote-generation';
 import { logger } from '@/lib/logger';
-import {
-  serializeFAQ,
-  serializeFirestoreDoc,
-  serializeService,
-} from '@/lib/firestore-serializers';
+import { apiFetchJson } from '@/lib/server/internal-api';
 
-// Helper: require company from server cookie context
-async function requireCompanyFromServer() {
-  const { requireCompanyFromRequest } = await import('@/lib/companyContext');
-  const cookieStore = await cookies();
-  const session = cookieStore.get('__session')?.value || cookieStore.get('token')?.value || '';
-  const headers = { cookie: session ? `__session=${session}` : '' };
-  const res = await requireCompanyFromRequest(headers as any);
-  return res.companyId as string;
+type ApiResult<T = unknown> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+  id?: string;
+  count?: number;
+};
+
+function parseApiError(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== 'object') return fallback;
+  const record = payload as Record<string, unknown>;
+  const error = record.error;
+  if (typeof error === 'string' && error.trim()) return error;
+  return fallback;
+}
+
+async function requestApi<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
+  const result = await apiFetchJson<Record<string, unknown>>(path, init);
+  if (!result.ok) {
+    return {
+      success: false,
+      error: parseApiError(result.data, `Request failed (${result.status})`),
+    };
+  }
+
+  const payload = result.data as Record<string, unknown> | null;
+  if (!payload || payload.success === false) {
+    return {
+      success: false,
+      error: parseApiError(payload, 'Request failed'),
+    };
+  }
+
+  return {
+    success: true,
+    data: (payload.data as T) ?? (payload as unknown as T),
+    id: typeof payload.id === 'string' ? payload.id : undefined,
+    count: typeof payload.count === 'number' ? payload.count : undefined,
+  };
 }
 
 // ==================== AUTH ====================
 export async function logoutAction() {
   const cookieStore = await cookies();
-  
-  // Clear the session cookie
   cookieStore.delete('__session');
-  
-  // Also notify the server to clear any remaining session data
-  try {
-    await fetch(`${process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN?.split('.')[0] || 'http://localhost:3000'}/api/auth/session`, {
-      method: 'DELETE',
-    }).catch(() => {
-      // Ignore fetch errors - cookie is already deleted
-    });
-  } catch (e) {
-    // Ignore
-  }
-  
-  // Redirect to home page
   redirect('/');
 }
 
-// Create or update user profile after authentication
-export async function createUserProfile(userId: string, data: {
-  email: string;
-  fullName?: string;
-  role?: 'admin' | 'client';
-  company?: string;
-}) {
-  try {
-    const db = await getFirestoreAdmin();
-    const userRef = db.collection('users').doc(userId);
-    // enforce company from caller token when available
-    try {
-      const companyId = await requireCompanyFromServer();
-      await userRef.set(
-        {
-          email: data.email,
-          fullName: data.fullName || '',
-          role: data.role || 'client',
-          companyId: companyId,
-          updatedAt: new Date(),
-          createdAt: (await userRef.get()).exists ? undefined : new Date(),
-        },
-        { merge: true }
-      );
-    } catch (e) {
-      // fallback: still set profile but without companyId when no token available
-      await userRef.set(
-        {
-          email: data.email,
-          fullName: data.fullName || '',
-          role: data.role || 'client',
-          companyId: data.company || null,
-          updatedAt: new Date(),
-          createdAt: (await userRef.get()).exists ? undefined : new Date(),
-        },
-        { merge: true }
-      );
-    }
-    
-    return { success: true };
-  } catch (error) {
-    logger.error('Error creating user profile', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to create user profile' };
-  }
-}
-
-// Get user profile (with role information)
-export async function getUserProfile(userId: string) {
-  try {
-    const db = await getFirestoreAdmin();
-    const doc = await db.collection('users').doc(userId).get();
-    
-    if (!doc.exists) {
-      return { success: false, error: 'User profile not found' };
-    }
-    // ensure company isolation: allow if caller is same company or no company context
-    try {
-      const companyId = await requireCompanyFromServer();
-      const data = doc.data() as any;
-      if (data?.companyId && data.companyId !== companyId) return { success: false, error: 'Forbidden' };
-    } catch { /* no token available, allow */ }
-
-    return { success: true, data: serializeFirestoreDoc(doc.data(), doc.id) };
-  } catch (error) {
-    logger.error('Error fetching user profile', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch user profile' };
-  }
-}
-
+// ==================== QUOTE ====================
 const QuoteSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters."),
-  email: z.string().email("Please enter a valid email."),
-  origin: z.string().min(2, "Origin must be at least 2 characters."),
-  destination: z.string().min(2, "Destination must be at least 2 characters."),
-  length: z.coerce.number().positive("Length must be a positive number."),
-  width: z.coerce.number().positive("Width must be a positive number."),
-  height: z.coerce.number().positive("Height must be a positive number."),
-  weight: z.coerce.number().positive("Weight must be a positive number."),
+  name: z.string().min(2, 'Name must be at least 2 characters.'),
+  email: z.string().email('Please enter a valid email.'),
+  origin: z.string().min(2, 'Origin must be at least 2 characters.'),
+  destination: z.string().min(2, 'Destination must be at least 2 characters.'),
+  length: z.coerce.number().positive('Length must be a positive number.'),
+  width: z.coerce.number().positive('Width must be a positive number.'),
+  height: z.coerce.number().positive('Height must be a positive number.'),
+  weight: z.coerce.number().positive('Weight must be a positive number.'),
 });
 
-// Define state for the form
 export type QuoteFormState = {
   message: string;
   quoteKES?: number;
@@ -146,7 +86,10 @@ export type QuoteFormState = {
   };
 };
 
-export async function getQuote(prevState: QuoteFormState, formData: FormData): Promise<QuoteFormState> {
+export async function getQuote(
+  prevState: QuoteFormState,
+  formData: FormData
+): Promise<QuoteFormState> {
   const validatedFields = QuoteSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) {
@@ -155,7 +98,7 @@ export async function getQuote(prevState: QuoteFormState, formData: FormData): P
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
-  
+
   try {
     const result = await generateInstantQuote(validatedFields.data);
     if (result.quoteUSD && result.quoteKES) {
@@ -166,50 +109,27 @@ export async function getQuote(prevState: QuoteFormState, formData: FormData): P
         breakdown: result.breakdown,
         quoteDetails: validatedFields.data,
       };
-    } else {
-       return { message: 'Failed to generate quote. The AI model could not determine a price. Please try again with different values.' };
     }
-  } catch (e) {
-    logger.error('Quote generation failed', { error: e instanceof Error ? e.message : String(e) });
+
+    return {
+      message:
+        'Failed to generate quote. The AI model could not determine a price. Please try again with different values.',
+    };
+  } catch (error) {
+    logger.error('Quote generation failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return { message: 'An unexpected error occurred on the server. Please try again later.' };
   }
 }
+
 // ==================== SERVICES ====================
 export async function getServices() {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db.collection('services').where('companyId', '==', companyId).get();
-    const services: any[] = [];
-    snapshot.forEach((doc) => {
-      services.push(serializeService(doc.data(), doc.id));
-    });
-    return { success: true, data: services };
-  } catch (error) {
-    logger.error('Error fetching services', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch services' };
-  }
+  return requestApi<any[]>('/api/services');
 }
 
-// Public, non-tenant-scoped read for marketing/client pages.
 export async function getPublicServices() {
-  try {
-    const db = await getFirestoreAdmin();
-    const snapshot = await db.collection('services').get();
-    const services: any[] = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      if (data.isVisible !== false) {
-        services.push(serializeService(data, doc.id));
-      }
-    });
-    return { success: true, data: services };
-  } catch (error) {
-    logger.error('Error fetching public services', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return { success: false, error: 'Failed to fetch public services' };
-  }
+  return requestApi<any[]>('/api/services/public');
 }
 
 export async function addService(data: {
@@ -218,19 +138,11 @@ export async function addService(data: {
   price: number;
   isFeatured: boolean;
 }) {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const docRef = await db.collection('services').add({
-      ...data,
-      companyId,
-      createdAt: new Date(),
-    });
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    logger.error('Error adding service', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to add service' };
-  }
+  const result = await requestApi<unknown>('/api/services', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return result.success ? { success: true, id: result.id } : result;
 }
 
 export async function updateService(
@@ -242,103 +154,23 @@ export async function updateService(
     isFeatured: boolean;
   }>
 ) {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const ref = db.collection('services').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) return { success: false, error: 'Not found' };
-    const s = snap.data() as any;
-    if (s.companyId !== companyId) return { success: false, error: 'Forbidden' };
-    await ref.update({
-      ...data,
-      updatedAt: new Date(),
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error('Error updating service', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to update service' };
-  }
+  return requestApi(`/api/services/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteService(id: string) {
-  try {
-    // Prevent deletion of default services
-    if (!isServiceDeletable(id)) {
-      return { 
-        success: false, 
-        error: 'Default services cannot be deleted. You can hide them or edit their details.' 
-      };
-    }
-
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const ref = db.collection('services').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) return { success: false, error: 'Not found' };
-    const s = snap.data() as any;
-    if (s.companyId !== companyId) return { success: false, error: 'Forbidden' };
-    await ref.delete();
-    return { success: true };
-  } catch (error) {
-    logger.error('Error deleting service', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to delete service' };
-  }
+  return requestApi(`/api/services/${id}`, { method: 'DELETE' });
 }
 
 // ==================== OFFERS ====================
 export async function getOffers() {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db.collection('offers').where('companyId', '==', companyId).get();
-    const offers: any[] = [];
-    snapshot.forEach((doc) => {
-      offers.push(serializeFirestoreDoc(doc.data(), doc.id));
-    });
-    return { success: true, data: offers };
-  } catch (error) {
-    logger.error('Error fetching offers', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch offers' };
-  }
+  return requestApi<any[]>('/api/offers');
 }
 
-export async function getActiveOffers() {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db
-      .collection('offers')
-      .where('companyId', '==', companyId)
-      .where('isActive', '==', true)
-      .get();
-    const offers: any[] = [];
-    snapshot.forEach((doc) => {
-      offers.push(serializeFirestoreDoc(doc.data(), doc.id));
-    });
-    return { success: true, data: offers };
-  } catch (error) {
-    logger.error('Error fetching active offers', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch active offers' };
-  }
-}
-
-// Public, non-tenant-scoped read for homepage/client offers display.
 export async function getPublicActiveOffers() {
-  try {
-    const db = await getFirestoreAdmin();
-    const snapshot = await db.collection('offers').where('isActive', '==', true).get();
-    const offers: any[] = [];
-    snapshot.forEach((doc) => {
-      offers.push(serializeFirestoreDoc(doc.data(), doc.id));
-    });
-    return { success: true, data: offers };
-  } catch (error) {
-    logger.error('Error fetching public active offers', {
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return { success: false, error: 'Failed to fetch public active offers' };
-  }
+  return requestApi<any[]>('/api/offers/public');
 }
 
 export async function addOffer(data: {
@@ -347,19 +179,11 @@ export async function addOffer(data: {
   description: string;
   isActive: boolean;
 }) {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const docRef = await db.collection('offers').add({
-      ...data,
-      companyId,
-      createdAt: new Date(),
-    });
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    logger.error('Error adding offer', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to add offer' };
-  }
+  const result = await requestApi<unknown>('/api/offers', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return result.success ? { success: true, id: result.id } : result;
 }
 
 export async function updateOffer(
@@ -371,334 +195,72 @@ export async function updateOffer(
     isActive: boolean;
   }>
 ) {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const ref = db.collection('offers').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) return { success: false, error: 'Not found' };
-    const o = snap.data() as any;
-    if (o.companyId !== companyId) return { success: false, error: 'Forbidden' };
-    await ref.update({
-      ...data,
-      updatedAt: new Date(),
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error('Error updating offer', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to update offer' };
-  }
+  return requestApi(`/api/offers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteOffer(id: string) {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const ref = db.collection('offers').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) return { success: false, error: 'Not found' };
-    const o = snap.data() as any;
-    if (o.companyId !== companyId) return { success: false, error: 'Forbidden' };
-    await ref.delete();
-    return { success: true };
-  } catch (error) {
-    logger.error('Error deleting offer', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to delete offer' };
-  }
+  return requestApi(`/api/offers/${id}`, { method: 'DELETE' });
 }
 
 // ==================== REVIEWS ====================
 export async function getApprovedReviews() {
-  try {
-    const db = await getFirestoreAdmin();
-    const snapshot = await db
-      .collection('reviews')
-      .where('status', '==', 'approved')
-      .get();
-    const reviews: any[] = [];
-    snapshot.forEach((doc) => {
-      reviews.push(serializeFirestoreDoc(doc.data(), doc.id));
-    });
-    return { success: true, data: reviews };
-  } catch (error) {
-    logger.error('Error fetching reviews', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch reviews' };
-  }
-}
-
-export async function submitReview(data: {
-  userId: string;
-  userName: string;
-  rating: number;
-  comment: string;
-  serviceId: string;
-}) {
-  try {
-    const db = await getFirestoreAdmin();
-
-    // Check if user has completed a service
-    const bookingsSnapshot = await db
-      .collection('bookings')
-      .where('userId', '==', data.userId)
-      .where('serviceId', '==', data.serviceId)
-      .where('status', '==', 'completed')
-      .get();
-
-    if (bookingsSnapshot.empty) {
-      return {
-        success: false,
-        error: 'You must have completed this service to leave a review',
-      };
-    }
-
-    // Add review with pending status
-    const docRef = await db.collection('reviews').add({
-      ...data,
-      status: 'pending',
-      createdAt: new Date(),
-    });
-
-    return { success: true, id: docRef.id };
-  } catch (error) {
-    logger.error('Error submitting review', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to submit review' };
-  }
+  return requestApi<any[]>('/api/reviews');
 }
 
 export async function getPendingReviews() {
-  try {
-    const db = await getFirestoreAdmin();
-    // SECURITY FIX P0: Require admin access via Firestore rules
-    // Note: This endpoint returns pending reviews. In production web app,
-    // Firestore rules enforce that only admins can read 'pending' status reviews.
-    // For API clients using Admin SDK, admin verification in app code is required (below).
-    
-    // Try to require company context - indicates authenticated request
-    try {
-      await requireCompanyFromServer();
-    } catch (e) {
-      return { success: false, error: 'Unauthorized' };
-    }
-    
-    const snapshot = await db
-      .collection('reviews')
-      .where('status', '==', 'pending')
-      .orderBy('createdAt', 'desc')
-      .get();
-    const reviews: any[] = [];
-    snapshot.forEach((doc) => {
-      reviews.push(serializeFirestoreDoc(doc.data(), doc.id));
-    });
-    return { success: true, data: reviews };
-  } catch (error) {
-    logger.error('Error fetching pending reviews', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch pending reviews' };
-  }
+  return requestApi<any[]>('/api/admin/reviews/pending');
 }
 
-export async function approveReview(id: string) {
-  try {
-    const db = await getFirestoreAdmin();
-    // SECURITY FIX P0: Require admin authentication
-    try {
-      await requireCompanyFromServer();
-    } catch (e) {
-      return { success: false, error: 'Unauthorized' };
-    }
-    
-    // Verify review exists
-    const reviewDoc = await db.collection('reviews').doc(id).get();
-    if (!reviewDoc.exists) {
-      return { success: false, error: 'Review not found' };
-    }
-    
-    await db.collection('reviews').doc(id).update({
-      status: 'approved',
-      approvedAt: new Date(),
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error('Error approving review', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to approve review' };
-  }
-}
-
-export async function rejectReview(id: string) {
-  try {
-    const db = await getFirestoreAdmin();
-    // SECURITY FIX P0: Require admin authentication
-    try {
-      await requireCompanyFromServer();
-    } catch (e) {
-      return { success: false, error: 'Unauthorized' };
-    }
-    
-    // Verify review exists
-    const reviewDoc = await db.collection('reviews').doc(id).get();
-    if (!reviewDoc.exists) {
-      return { success: false, error: 'Review not found' };
-    }
-    
-    await db.collection('reviews').doc(id).update({
-      status: 'rejected',
-      rejectedAt: new Date(),
-    });
-    return { success: true };
-  } catch (error) {
-    logger.error('Error rejecting review', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to reject review' };
-  }
-}
-
-// ==================== FAQs ====================
+// ==================== FAQS ====================
 export async function getFAQs() {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db.collection('faqs').where('companyId', '==', companyId).orderBy('order').get();
-    const faqs: any[] = [];
-    snapshot.forEach((doc) => {
-      const data = doc.data();
-      const faq = serializeFAQ(data, doc.id) as any;
-      faq.isDefault = data.isDefault || false;
-      faq.isVisible = data.isVisible !== false;
-      faqs.push(faq);
-    });
-    return { success: true, data: faqs };
-  } catch (error) {
-    logger.error('Error fetching FAQs', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch FAQs' };
-  }
+  return requestApi<any[]>('/api/faqs');
 }
 
-export async function addFAQ(data: {
-  question: string;
-  answer: string;
-}) {
-  try {
-    const db = await getFirestoreAdmin();
-    
-    // Generate slug from question
-    const slug = data.question
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 50);
-
-    // Get the highest order number
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db.collection('faqs').where('companyId', '==', companyId).orderBy('order', 'desc').limit(1).get();
-    const maxOrder = snapshot.empty ? 0 : (snapshot.docs[0].data().order || 0);
-
-    const newDocRef = await db.collection('faqs').add({
-      question: data.question,
-      answer: data.answer,
-      slug: slug,
-      companyId,
-      isDefault: false,
-      isVisible: true,
-      order: maxOrder + 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    return { success: true, id: newDocRef.id };
-  } catch (error) {
-    logger.error('Error creating FAQ', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to create FAQ' };
-  }
+export async function addFAQ(data: { question: string; answer: string }) {
+  const result = await requestApi<unknown>('/api/faqs', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return result.success ? { success: true, id: result.id } : result;
 }
 
-export async function updateFAQ(id: string, data: {
-  question?: string;
-  answer?: string;
-  isVisible?: boolean;
-  order?: number;
-}) {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const ref = db.collection('faqs').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) return { success: false, error: 'Not found' };
-    const f = snap.data() as any;
-    if (f.companyId !== companyId) return { success: false, error: 'Forbidden' };
-
-    const updateData: any = {
-      ...data,
-      updatedAt: new Date(),
-    };
-
-    // If question changes, update slug
-    if (data.question) {
-      updateData.slug = data.question
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .replace(/\s+/g, '-')
-        .substring(0, 50);
-    }
-
-    await ref.update(updateData);
-    return { success: true };
-  } catch (error) {
-    logger.error('Error updating FAQ', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to update FAQ' };
+export async function updateFAQ(
+  id: string,
+  data: {
+    question?: string;
+    answer?: string;
+    isVisible?: boolean;
+    order?: number;
   }
+) {
+  return requestApi(`/api/faqs/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteFAQ(id: string) {
-  try {
-    // Prevent deletion of default FAQs
-    if (!isFAQDeletable(id)) {
-      return { 
-        success: false, 
-        error: 'Default FAQs cannot be deleted. You can hide them or edit their content.' 
-      };
-    }
-
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const ref = db.collection('faqs').doc(id);
-    const snap = await ref.get();
-    if (!snap.exists) return { success: false, error: 'Not found' };
-    const f = snap.data() as any;
-    if (f.companyId !== companyId) return { success: false, error: 'Forbidden' };
-    await ref.delete();
-    return { success: true };
-  } catch (error) {
-    logger.error('Error deleting FAQ', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to delete FAQ' };
-  }
+  return requestApi(`/api/faqs/${id}`, { method: 'DELETE' });
 }
 
 // ==================== ANALYTICS ====================
 export async function getTotalCustomers() {
-  try {
-    const db = await getFirestoreAdmin();
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db.collection('users').where('companyId', '==', companyId).get();
-    return { success: true, count: snapshot.size };
-  } catch (error) {
-    logger.error('Error fetching customer count', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch customer count' };
-  }
+  const result = await requestApi<{ totalCustomers?: number }>('/api/admin/stats');
+  if (!result.success) return result;
+  return {
+    success: true,
+    count: (result.data as { totalCustomers?: number } | undefined)?.totalCustomers ?? 0,
+  };
 }
 
 export async function getTotalBookings() {
-  try {
-    const db = await getFirestoreAdmin();
-    // SECURITY FIX P0: Add company isolation
-    const companyId = await requireCompanyFromServer();
-    const snapshot = await db
-      .collection('bookings')
-      .where('companyId', '==', companyId)
-      .get();
-    return { success: true, count: snapshot.size };
-  } catch (error) {
-    logger.error('Error fetching booking count', { error: error instanceof Error ? error.message : String(error) });
-    return { success: false, error: 'Failed to fetch booking count' };
-  }
+  const result = await requestApi<{ totalBookings?: number }>('/api/admin/stats');
+  if (!result.success) return result;
+  return {
+    success: true,
+    count: (result.data as { totalBookings?: number } | undefined)?.totalBookings ?? 0,
+  };
 }
-
-
-

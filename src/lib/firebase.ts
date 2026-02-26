@@ -4,7 +4,6 @@ export {
   firebaseConfig,
   firebaseApp,
   auth,
-  db,
-  ADMIN_UID
+  db
 } from '@/firebase/config';  
 

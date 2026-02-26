@@ -14,6 +14,17 @@ const AuthGuard = ({ children, isAdmin = false }: AuthGuardProps) => {
   const router = useRouter();
 
   useEffect(() => {
+    const verifyAdmin = async () => {
+      try {
+        const response = await fetch('/api/admin/verify', { cache: 'no-store' });
+        if (!response.ok) {
+          router.replace('/');
+        }
+      } catch {
+        router.replace('/');
+      }
+    };
+
     // 1. Wait until the initial loading check is complete
     if (loading) return;
 
@@ -27,13 +38,9 @@ const AuthGuard = ({ children, isAdmin = false }: AuthGuardProps) => {
       return;
     }
 
-    // 3. If admin access is required, check the ADMIN_UID
+    // 3. If admin access is required, check server-side protected admin endpoint
     if (isAdmin) {
-      const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID;
-      if (!adminUid || user.uid !== adminUid) {
-        // Unauthorized admin access attempt
-        router.replace('/');
-      }
+      void verifyAdmin();
     }
   }, [user, loading, router, isAdmin]);
 

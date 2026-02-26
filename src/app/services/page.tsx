@@ -1,12 +1,16 @@
 import Link from 'next/link';
-import { getVisibleServices } from '@/lib/seed';
 import { generatePageMetadata } from '@/lib/seo-metadata';
+import { apiFetchJson } from '@/lib/server/internal-api';
 
 export const metadata = generatePageMetadata('Services', 'Our logistics services', '/services');
+export const dynamic = 'force-dynamic';
 
 export default async function ServicesPage() {
   try {
-    const services = await getVisibleServices();
+    const response = await apiFetchJson<{ success?: boolean; data?: any[]; error?: string }>(
+      '/api/services/public'
+    );
+    const services = response.ok ? response.data?.data || [] : [];
 
     return (
       <section className="py-16 container mx-auto px-4">
@@ -27,6 +31,9 @@ export default async function ServicesPage() {
       </section>
     );
   } catch (err) {
+    if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err;
+    }
     console.error('ServicesPage error:', err);
     return (
       <section className="py-16 container mx-auto px-4">

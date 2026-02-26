@@ -4,13 +4,12 @@
 // to maintain backward compatibility with existing imports
 
 import { getFirestore } from 'firebase/firestore';
-import { firebaseApp, auth, ADMIN_UID, firebaseConfig } from './client';
+import { firebaseApp, auth, firebaseConfig } from './client';
 
 export {
   firebaseConfig,
   firebaseApp,
-  auth,
-  ADMIN_UID
+  auth
 };
 
 // Re-export db as both db and firestore for compatibility

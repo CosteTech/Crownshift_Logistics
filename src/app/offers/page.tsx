@@ -1,12 +1,16 @@
-import { getVisibleServices } from '@/lib/seed';
-import { getActiveOffers as computeActiveOffers } from '@/lib/offers';
+import { getActiveOffers as computeActiveOffers } from '@/lib/client/offers';
 import { generatePageMetadata } from '@/lib/seo-metadata';
+import { apiFetchJson } from '@/lib/server/internal-api';
 
 export const metadata = generatePageMetadata('Offers', 'Current offers and discounts', '/offers');
+export const dynamic = 'force-dynamic';
 
 export default async function OffersPage() {
   try {
-    const services = await getVisibleServices();
+    const response = await apiFetchJson<{ success?: boolean; data?: any[]; error?: string }>(
+      '/api/services/public'
+    );
+    const services = response.ok ? response.data?.data || [] : [];
     const offers = computeActiveOffers(services || []);
 
     return (
@@ -23,6 +27,9 @@ export default async function OffersPage() {
       </section>
     );
   } catch (err) {
+    if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err;
+    }
     console.error('Offers error:', err);
     return (
       <section className="py-16 container mx-auto px-4">

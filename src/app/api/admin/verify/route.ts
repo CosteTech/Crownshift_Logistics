@@ -2,6 +2,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminAuth } from "@/firebase/admin";
+import { requireAdminFromSessionCookie } from "@/lib/server/admin-auth";
 
 type VerifyAdminSuccess = {
   ok: true;
@@ -29,19 +30,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "Missing session cookie" }, { status: 401 });
   }
 
-  const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID;
-  if (!adminUid) {
-    return NextResponse.json({ ok: false, error: "Admin UID is not configured" }, { status: 500 });
+  if (!process.env.ADMIN_EMAIL) {
+    return NextResponse.json({ ok: false, error: "ADMIN_EMAIL is not configured" }, { status: 500 });
   }
 
   try {
+    const decoded = await requireAdminFromSessionCookie(sessionCookie);
     const auth = getAdminAuth();
-    const decoded = await auth.verifySessionCookie(sessionCookie, true);
-
-    if (decoded.uid !== adminUid) {
-      return NextResponse.json({ ok: false, error: "Insufficient privileges" }, { status: 403 });
-    }
-
     const user = await auth.getUser(decoded.uid);
     const payload: VerifyAdminSuccess = {
       ok: true,

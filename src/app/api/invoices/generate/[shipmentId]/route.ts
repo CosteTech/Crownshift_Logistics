@@ -19,7 +19,7 @@ export async function GET(request: any, context: any) {
 
     // Validate company isolation: require token matches shipment.companyId
     try {
-      const { requireCompanyFromRequest } = await import('@/lib/companyContext');
+      const { requireCompanyFromRequest } = await import('@/lib/server/company-context');
       await requireCompanyFromRequest(request.headers, shipment.companyId);
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'unauthorized' }, { status: 401 });

@@ -55,7 +55,7 @@ export interface User {
   uid?: string;
   name: string;
   email: string;
-  role: 'user' | 'admin';  // 'user' for regular users, 'admin' for designated ADMIN_UID only
+  role: 'user' | 'admin';  // 'user' for regular users, 'admin' for designated ADMIN_EMAIL
   companyId?: string;
   createdAt?: TimestampLike;
 }

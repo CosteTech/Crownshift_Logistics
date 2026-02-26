@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Require auth and only allow creating/updating your own profile.
     let decoded: any;
     try {
-      const { getAuthFromRequest } = await import('@/lib/companyContext');
+      const { getAuthFromRequest } = await import('@/lib/server/company-context');
       const authRes = await getAuthFromRequest(request.headers);
       decoded = authRes.decoded;
 

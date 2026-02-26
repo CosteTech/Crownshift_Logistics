@@ -1,45 +1,28 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from 'next/server';
-import { seedDefaultServices, seedDefaultFAQs } from '@/lib/seed';
-import { getAdminAuth, getFirestoreAdmin } from '@/firebase/admin';
+import { seedDefaultServices, seedDefaultFAQs } from '@/lib/server/seed';
+import { getFirestoreAdmin } from '@/firebase/admin';
+import { requireAdminFromIdToken } from '@/lib/server/admin-auth';
 
 // Protected seeder endpoint
-// Authentication options (either):
-// 1) Header `x-admin-token: <SEED_ADMIN_TOKEN>` where `SEED_ADMIN_TOKEN` is set in env
-// 2) Authorization: Bearer <Firebase ID Token> for a user whose uid matches ADMIN_UID or NEXT_PUBLIC_ADMIN_UID
+// Authentication: Authorization: Bearer <Firebase ID Token> for user whose email matches ADMIN_EMAIL
 // The endpoint enforces a one-time-run guard stored in Firestore at `adminOps/seed` unless `x-admin-force` is supplied.
 
 export async function POST(req: Request) {
   try {
-    const adminSecret = process.env.SEED_ADMIN_TOKEN;
-    const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID;
-
     const headers = req.headers;
-    const providedSecret = headers.get('x-admin-token');
     const authHeader = headers.get('authorization') || '';
     const bearerToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
     const forceFlag = headers.get('x-admin-force') === '1' || headers.get('x-admin-force') === 'true';
 
-    let authorized = false;
-
-    if (adminSecret && providedSecret && providedSecret === adminSecret) {
-      authorized = true;
+    if (!bearerToken) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (!authorized && bearerToken && adminUid) {
-      try {
-        const adminAuth = getAdminAuth();
-        const decoded = await adminAuth.verifyIdToken(bearerToken);
-        if (decoded && decoded.uid === adminUid) {
-          authorized = true;
-        }
-      } catch (e) {
-        // fall through to unauthorized
-      }
-    }
-
-    if (!authorized) {
+    try {
+      await requireAdminFromIdToken(bearerToken);
+    } catch (e) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -53,7 +36,7 @@ export async function POST(req: Request) {
     // enforce company context and seed per-company defaults
     let companyId: string | undefined = undefined;
     try {
-      const { requireCompanyFromRequest } = await import('@/lib/companyContext');
+      const { requireCompanyFromRequest } = await import('@/lib/server/company-context');
       const res = await requireCompanyFromRequest(headers, (await (async () => {
         // Try to read companyId from body if provided
         try { const b = await req.json(); return b?.companyId; } catch { return undefined; }

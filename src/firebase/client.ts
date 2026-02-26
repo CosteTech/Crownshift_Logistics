@@ -20,8 +20,6 @@ if (!firebaseConfig.projectId) {
   console.error("Firebase Project ID is missing: NEXT_PUBLIC_FIREBASE_PROJECT_ID");
 }
 
-export const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
-
 const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 export { firebaseApp };

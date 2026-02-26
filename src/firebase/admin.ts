@@ -1,8 +1,6 @@
 import "server-only";
 import * as admin from "firebase-admin";
 
-export const runtime = "nodejs";
-
 const requiredEnvVars = {
   FIREBASE_ADMIN_PROJECT_ID: process.env.FIREBASE_ADMIN_PROJECT_ID,
   FIREBASE_ADMIN_CLIENT_EMAIL: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
@@ -59,14 +57,33 @@ export function getAdminAuth() {
   return admin.auth(getAdminApp());
 }
 
+function normalizeEmail(email: string | null | undefined) {
+  return (email || "").trim().toLowerCase();
+}
+
+export function getConfiguredAdminEmail() {
+  return normalizeEmail(process.env.ADMIN_EMAIL);
+}
+
+export function isAdminEmail(email: string | null | undefined) {
+  const configuredAdminEmail = getConfiguredAdminEmail();
+  if (!configuredAdminEmail) {
+    return false;
+  }
+  return normalizeEmail(email) === configuredAdminEmail;
+}
+
 export async function verifyAdminToken(idToken: string) {
-  const adminUid = process.env.NEXT_PUBLIC_ADMIN_UID;
   const auth = getAdminAuth();
   const decoded = await auth.verifyIdToken(idToken).catch(() => {
     throw new Error("Invalid token");
   });
 
-  if (decoded && adminUid && decoded.uid === adminUid) {
+  if (!getConfiguredAdminEmail()) {
+    throw new Error("ADMIN_EMAIL is not configured");
+  }
+
+  if (decoded && isAdminEmail(decoded.email || null)) {
     return decoded;
   }
 

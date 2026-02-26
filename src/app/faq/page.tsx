@@ -1,11 +1,15 @@
-import { getVisibleFAQs } from '@/lib/seed';
 import { generatePageMetadata } from '@/lib/seo-metadata';
+import { apiFetchJson } from '@/lib/server/internal-api';
 
 export const metadata = generatePageMetadata('FAQ', 'Frequently asked questions', '/faq');
+export const dynamic = 'force-dynamic';
 
 export default async function FAQServerPage() {
   try {
-    const faqs = await getVisibleFAQs();
+    const response = await apiFetchJson<{ success?: boolean; data?: any[]; error?: string }>(
+      '/api/faqs/public'
+    );
+    const faqs = response.ok ? response.data?.data || [] : [];
 
     return (
       <section className="py-16 container mx-auto px-4">
@@ -21,6 +25,9 @@ export default async function FAQServerPage() {
       </section>
     );
   } catch (err) {
+    if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err;
+    }
     console.error('FAQ server error:', err);
     return (
       <section className="py-16 container mx-auto px-4">

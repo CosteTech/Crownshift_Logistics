@@ -27,29 +27,32 @@ export interface Offer extends Service {
  */
 export function getActiveOffers(services: Service[]): Offer[] {
   const now = new Date();
-  
+
   return services
     .filter((service) => {
       if (!service.discountPercentage || service.discountPercentage <= 0) {
         return false;
       }
-      
+
       if (service.discountEndsAt) {
         const endDate = new Date(service.discountEndsAt);
         if (endDate < now) {
           return false;
         }
       }
-      
+
       return true;
     })
-    .map((service) => ({
-      ...service,
-      discountPercentage: service.discountPercentage!,
-      discountEndsAt: service.discountEndsAt!,
-      originalPrice: service.price,
-      discountAmount: service.price * (service.discountPercentage! / 100),
-    } as Offer));
+    .map(
+      (service) =>
+        ({
+          ...service,
+          discountPercentage: service.discountPercentage!,
+          discountEndsAt: service.discountEndsAt!,
+          originalPrice: service.price,
+          discountAmount: service.price * (service.discountPercentage! / 100),
+        }) as Offer
+    );
 }
 
 /**
@@ -66,11 +69,11 @@ export function isOfferActive(offer: Service): boolean {
   if (!offer.discountPercentage || offer.discountPercentage <= 0) {
     return false;
   }
-  
+
   if (offer.discountEndsAt) {
     return new Date(offer.discountEndsAt) > new Date();
   }
-  
+
   return true;
 }
 
@@ -88,10 +91,11 @@ export function formatOfferExpiry(endDate: Date | string): string {
   const date = new Date(endDate);
   const now = new Date();
   const daysLeft = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   if (daysLeft <= 0) return 'Expired';
   if (daysLeft === 1) return 'Expires tomorrow';
   if (daysLeft <= 7) return `${daysLeft} days left`;
-  
+
   return `Expires ${date.toLocaleDateString()}`;
 }
+

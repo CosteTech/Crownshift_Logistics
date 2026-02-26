@@ -1,8 +1,16 @@
 import { notFound } from 'next/navigation';
-import { getVisibleServices } from '@/lib/seed';
 import { generatePageMetadata } from '@/lib/seo-metadata';
+import { apiFetchJson } from '@/lib/server/internal-api';
 
 type Params = { slug: string };
+export const dynamic = 'force-dynamic';
+
+async function getVisibleServices() {
+  const response = await apiFetchJson<{ success?: boolean; data?: any[]; error?: string }>(
+    '/api/services/public'
+  );
+  return response.ok ? response.data?.data || [] : [];
+}
 
 async function findService(slug: string) {
   const services = await getVisibleServices();
@@ -18,22 +26,24 @@ export async function generateStaticParams() {
   }
 }
 
-export async function generateMetadata({ params }: { params: Params }) {
-  const service = await findService(params.slug);
+export async function generateMetadata({ params }: { params: Promise<Params> }) {
+  const resolved = await params;
+  const service = await findService(resolved.slug);
   if (!service) {
-    return generatePageMetadata('Service', 'Service details', `/services/${params.slug}`);
+    return generatePageMetadata('Service', 'Service details', `/services/${resolved.slug}`);
   }
 
   return generatePageMetadata(
     service.title || 'Service',
     service.description || '',
-    `/services/${params.slug}`
+    `/services/${resolved.slug}`
   );
 }
 
-export default async function ServiceDetail({ params }: { params: Params }) {
+export default async function ServiceDetail({ params }: { params: Promise<Params> }) {
+  const resolved = await params;
   try {
-    const service = await findService(params.slug);
+    const service = await findService(resolved.slug);
     if (!service) {
       notFound();
     }
@@ -45,6 +55,9 @@ export default async function ServiceDetail({ params }: { params: Params }) {
       </section>
     );
   } catch (err) {
+    if ((err as { digest?: string })?.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err;
+    }
     console.error('ServiceDetail error:', err);
     return <div className="container py-16">Unable to load service.</div>;
   }

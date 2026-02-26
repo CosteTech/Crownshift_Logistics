@@ -131,7 +131,7 @@ export default function AdminLoginPage() {
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>
-            Secure admin access. Server-side UID validation required.
+            Secure admin access. Server-side ADMIN_EMAIL validation required.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

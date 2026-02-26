@@ -1,52 +1,45 @@
 export const runtime = "nodejs";
 
-import React from 'react';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { getFirestoreAdmin, getAdminAuth } from '@/firebase/admin';
-import ShipmentTimeline from '@/components/ShipmentTimeline';
-import { serializeShipment } from '@/lib/firestore-serializers';
+import React from "react";
+import { redirect } from "next/navigation";
+import ShipmentTimeline from "@/components/ShipmentTimeline";
+import { apiFetchJson } from "@/lib/server/internal-api";
 
-export async function generateMetadata({ params }: { params: { id: string } }) {
-  return { title: `Shipment ${params.id} — Dashboard` };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const resolved = await params;
+  return { title: `Shipment ${resolved.id} - Dashboard` };
 }
 
-export default async function ShipmentDetailPage({ params }: { params: { id: string } }) {
-  const cookieStore = await cookies();
-  const session = cookieStore.get('__session')?.value;
-  if (!session) return redirect('/login');
-
+export default async function ShipmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolved = await params;
   try {
-    const auth = getAdminAuth();
-    const decoded = await auth.verifySessionCookie(session, true).catch(() => null);
-    if (!decoded) return redirect('/login');
+    const response = await apiFetchJson<{ shipment?: any; error?: string }>(
+      `/api/dashboard/shipments/${resolved.id}`
+    );
 
-    const db = getFirestoreAdmin();
-    const doc = await db.collection('shipments').doc(params.id).get();
-    if (!doc.exists) return <div>Shipment not found</div>;
-    const shipmentData = doc.data();
-    if (!shipmentData) return <div>Shipment not found</div>;
-    const shipment = serializeShipment(shipmentData, doc.id) as any;
-
-    // Ensure the user owns this shipment or is admin
-    const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
-    if (shipment.customerId !== decoded.uid && decoded.uid !== ADMIN_UID) {
-      return <div className="text-red-600">Forbidden</div>;
+    if (response.status === 401) return redirect("/login");
+    if (response.status === 403) return <div className="text-red-600">Forbidden</div>;
+    if (response.status === 404) return <div>Shipment not found</div>;
+    if (!response.ok || !response.data?.shipment) {
+      return <div className="text-red-600">Unable to load shipment.</div>;
     }
+
+    const shipment = response.data.shipment;
 
     return (
       <div>
         <h1 className="text-2xl font-semibold">Shipment {shipment.trackingNumber}</h1>
         <p className="text-sm text-gray-500">Status: {shipment.status}</p>
         <div className="mt-6">
-          {/* ShipmentTimeline is client-only and animated */}
           <ShipmentTimeline timeline={shipment.timeline} />
         </div>
       </div>
     );
   } catch (err) {
-    console.error('Shipment detail error', err);
+    if ((err as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw err;
+    }
+    console.error("Shipment detail error", err);
     return <div className="text-red-600">Unable to load shipment.</div>;
   }
 }
-

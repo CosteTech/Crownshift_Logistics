@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getPublicServices } from '@/app/actions';
-import { getActiveOffers } from '@/lib/offers';
+import { getActiveOffers } from '@/lib/client/offers';
 import PromoBanner from '@/components/PromoBanner';
 import { EmptyState } from '@/components/EmptyState';
 import { OffersCarousel } from '@/components/offers-carousel';

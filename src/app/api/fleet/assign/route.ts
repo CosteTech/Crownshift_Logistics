@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (!companyId || !shipmentId || !vehicleId || !driverId) return NextResponse.json({ error: 'missing params' }, { status: 400 });
 
     try {
-      const { requireCompanyFromRequest } = await import('@/lib/companyContext');
+      const { requireCompanyFromRequest } = await import('@/lib/server/company-context');
       await requireCompanyFromRequest(request.headers, companyId);
     } catch (err: any) {
       return NextResponse.json({ error: err?.message || 'unauthorized' }, { status: 401 });

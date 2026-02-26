@@ -1,15 +1,8 @@
-/**
- * Seed logic for default services and FAQs
- * Automatically initializes the database with defaults
- */
+import "server-only";
 
 import { getFirestoreAdmin } from '@/firebase/admin';
 import { DEFAULT_SERVICES, DEFAULT_FAQS, Service, FAQ } from '@/lib/data-models';
 
-/**
- * Seed default services if they don't exist
- * Should be called once on first deployment or manually
- */
 export async function seedDefaultServices(companyId?: string) {
   try {
     const db = await getFirestoreAdmin();
@@ -18,7 +11,6 @@ export async function seedDefaultServices(companyId?: string) {
       const docRef = db.collection('services').doc(service.id);
       const docSnap = await docRef.get();
 
-      // Only create if doesn't exist
       if (!docSnap.exists) {
         if (!companyId) throw new Error('companyId required for seeding services');
         await docRef.set({
@@ -38,10 +30,6 @@ export async function seedDefaultServices(companyId?: string) {
   }
 }
 
-/**
- * Seed default FAQs if they don't exist
- * Should be called once on first deployment or manually
- */
 export async function seedDefaultFAQs(companyId?: string) {
   try {
     const db = await getFirestoreAdmin();
@@ -50,7 +38,6 @@ export async function seedDefaultFAQs(companyId?: string) {
       const docRef = db.collection('faqs').doc(faq.id);
       const docSnap = await docRef.get();
 
-      // Only create if doesn't exist
       if (!docSnap.exists) {
         if (!companyId) throw new Error('companyId required for seeding faqs');
         await docRef.set({
@@ -70,9 +57,6 @@ export async function seedDefaultFAQs(companyId?: string) {
   }
 }
 
-/**
- * Seed both services and FAQs
- */
 export async function seedDefaults(companyId?: string) {
   console.log('[SEED] Starting database seed...');
 
@@ -91,19 +75,14 @@ export async function seedDefaults(companyId?: string) {
   };
 }
 
-/**
- * Check if defaults are initialized
- */
 export async function areDefaultsInitialized(companyId?: string): Promise<boolean> {
   try {
     const db = await getFirestoreAdmin();
 
     if (!companyId) throw new Error('companyId required');
-    // Check if any default service exists for this company
     const servicesSnap = await db.collection('services').doc(DEFAULT_SERVICES[0].id).get();
     const facsSnap = await db.collection('faqs').doc(DEFAULT_FAQS[0].id).get();
 
-    // Check companyId field on the docs
     return (servicesSnap.exists && (servicesSnap.data()?.companyId === companyId)) && (facsSnap.exists && (facsSnap.data()?.companyId === companyId));
   } catch (error) {
     console.error('Error checking defaults:', error);
@@ -111,9 +90,6 @@ export async function areDefaultsInitialized(companyId?: string): Promise<boolea
   }
 }
 
-/**
- * Get all services including defaults (for client pages)
- */
 export async function getAllServices(): Promise<Service[]> {
   try {
     const db = await getFirestoreAdmin();
@@ -130,7 +106,7 @@ export async function getAllServices(): Promise<Service[]> {
         price: data.price,
         icon: data.icon,
         isDefault: data.isDefault || false,
-        isVisible: data.isVisible !== false, // Default to true
+        isVisible: data.isVisible !== false,
         order: data.order || 999,
         createdAt: data.createdAt?.toDate?.() || new Date(),
         updatedAt: data.updatedAt?.toDate?.() || new Date(),
@@ -144,17 +120,11 @@ export async function getAllServices(): Promise<Service[]> {
   }
 }
 
-/**
- * Get visible services only (for client pages)
- */
 export async function getVisibleServices(): Promise<Service[]> {
   const services = await getAllServices();
-  return services.filter(s => s.isVisible);
+  return services.filter((s) => s.isVisible);
 }
 
-/**
- * Get all FAQs including defaults
- */
 export async function getAllFAQs(): Promise<FAQ[]> {
   try {
     const db = await getFirestoreAdmin();
@@ -185,11 +155,8 @@ export async function getAllFAQs(): Promise<FAQ[]> {
   }
 }
 
-/**
- * Get visible FAQs only
- */
 export async function getVisibleFAQs(): Promise<FAQ[]> {
   const faqs = await getAllFAQs();
-  return faqs.filter(f => f.isVisible);
+  return faqs.filter((f) => f.isVisible);
 }
 

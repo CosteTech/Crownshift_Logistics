@@ -1,3 +1,5 @@
+import "server-only";
+
 import { getAdminAuth, getFirestoreAdmin } from '@/firebase/admin';
 
 type HeaderLike = Headers | Record<string, string> | undefined;

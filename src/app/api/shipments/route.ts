@@ -7,7 +7,7 @@ import { getFirestoreAdmin } from '@/firebase/admin';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { requireCompanyFromRequest } = await import('@/lib/companyContext');
+    const { requireCompanyFromRequest } = await import('@/lib/server/company-context');
     // will throw if missing/invalid token
     const res = await requireCompanyFromRequest(request.headers, body.companyId);
     const companyId = res.companyId;
@@ -44,7 +44,7 @@ export async function PUT(request: Request) {
     const { id, updates, companyId } = body as { id: string; updates: any; companyId?: string };
     if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 });
 
-    const { requireCompanyFromRequest } = await import('@/lib/companyContext');
+    const { requireCompanyFromRequest } = await import('@/lib/server/company-context');
     const res = await requireCompanyFromRequest(request.headers, companyId);
     const callerCompany = res.companyId;
 
