@@ -30,7 +30,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async headers() {
+ /* async headers() {
     return [
       {
         source: '/(.*)',
@@ -41,8 +41,8 @@ const nextConfig: NextConfig = {
           { key: 'X-XSS-Protection', value: '0' },
         ],
       },
-    ];
-  },
+    ]; 
+  },*/
 };
 
 export default nextConfig;
