@@ -1,8 +1,9 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from 'next/server';
-import { getFirestoreAdmin, verifyAdminToken } from '@/firebase/admin';
+import { getFirestoreAdmin } from '@/firebase/admin';
 import { serializeShipment } from '@/lib/firestore-serializers';
+import { requireAdminFromRequest } from '@/lib/server/admin-auth';
 
 /**
  * Admin shipment fetch endpoint
@@ -15,12 +16,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const { id } = await context.params;
     if (!id) return NextResponse.json({ error: 'missing id' }, { status: 400 });
 
-    const authHeader = request.headers.get('authorization') || '';
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-
-    const decoded = await verifyAdminToken(token).catch(() => null);
-    if (!decoded) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+    const decoded = await requireAdminFromRequest(request);
 
     const db = getFirestoreAdmin();
     const docRef = db.collection('shipments').doc(id);
@@ -28,7 +24,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     if (!snap.exists) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
     const shipData = snap.data() as Record<string, unknown>;
-    const companyId = (decoded as { companyId?: string }).companyId;
+    const companyId = typeof decoded.companyId === 'string' ? decoded.companyId : null;
 
     if (companyId && shipData.companyId && companyId !== shipData.companyId) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
@@ -37,9 +33,18 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     const data = serializeShipment(shipData, snap.id);
     return NextResponse.json(data);
   } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'server error';
+    const status =
+      message.includes('Missing authentication token') ||
+      message.includes('Invalid token') ||
+      message.includes('Insufficient privileges')
+        ? 403
+        : message.includes('ADMIN_EMAILS is not configured')
+          ? 500
+          : 500;
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'server error' },
-      { status: 500 }
+      { error: message },
+      { status }
     );
   }
 }

@@ -1,7 +1,8 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { getFirestoreAdmin, verifyAdminToken } from "@/firebase/admin";
+import { getFirestoreAdmin } from "@/firebase/admin";
+import { requireAdminFromRequest } from "@/lib/server/admin-auth";
 
 /**
  * Admin shipment update endpoint
@@ -15,13 +16,7 @@ export async function POST(request: Request) {
     const { trackingNumber, status, timelineEntry } = body;
     if (!trackingNumber) return NextResponse.json({ error: "missing trackingNumber" }, { status: 400 });
 
-    const authHeader = (request as any).headers.get("authorization") || "";
-    const token = authHeader.replace(/^Bearer\s+/i, "");
-    if (!token) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-    // Verify token and admin claim
-    const decoded = await verifyAdminToken(token).catch(() => null);
-    if (!decoded) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+    const decoded = await requireAdminFromRequest(request);
 
     const db = getFirestoreAdmin();
     const docRef = db.collection("shipments").doc(trackingNumber);
@@ -30,7 +25,7 @@ export async function POST(request: Request) {
 
     // Enforce company isolation for admin: admin must belong to same company as shipment
     const shipData = snap.data() as any;
-    if ((decoded as any).companyId && shipData.companyId && (decoded as any).companyId !== shipData.companyId) {
+    if (decoded.companyId && shipData.companyId && decoded.companyId !== shipData.companyId) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
@@ -42,8 +37,17 @@ export async function POST(request: Request) {
     await docRef.update(update);
 
     return NextResponse.json({ ok: true });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "server error" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "server error";
+    const status =
+      message.includes("Missing authentication token") ||
+      message.includes("Invalid token") ||
+      message.includes("Insufficient privileges")
+        ? 403
+        : message.includes("ADMIN_EMAILS is not configured")
+          ? 500
+          : 500;
+    return NextResponse.json({ error: message }, { status });
   }
 }
 

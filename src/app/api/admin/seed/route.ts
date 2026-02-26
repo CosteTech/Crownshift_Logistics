@@ -6,7 +6,7 @@ import { getFirestoreAdmin } from '@/firebase/admin';
 import { requireAdminFromIdToken } from '@/lib/server/admin-auth';
 
 // Protected seeder endpoint
-// Authentication: Authorization: Bearer <Firebase ID Token> for user whose email matches ADMIN_EMAIL
+// Authentication: Authorization: Bearer <Firebase ID Token> for user whose email is in ADMIN_EMAILS
 // The endpoint enforces a one-time-run guard stored in Firestore at `adminOps/seed` unless `x-admin-force` is supplied.
 
 export async function POST(req: Request) {
@@ -17,13 +17,13 @@ export async function POST(req: Request) {
     const forceFlag = headers.get('x-admin-force') === '1' || headers.get('x-admin-force') === 'true';
 
     if (!bearerToken) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     try {
       await requireAdminFromIdToken(bearerToken);
     } catch (e) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const db = getFirestoreAdmin();

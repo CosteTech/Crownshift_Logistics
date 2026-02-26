@@ -16,7 +16,15 @@ const AuthGuard = ({ children, isAdmin = false }: AuthGuardProps) => {
   useEffect(() => {
     const verifyAdmin = async () => {
       try {
-        const response = await fetch('/api/admin/verify', { cache: 'no-store' });
+        const token = await user?.getIdToken();
+        if (!token) {
+          router.replace('/');
+          return;
+        }
+        const response = await fetch('/api/admin/verify', {
+          cache: 'no-store',
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!response.ok) {
           router.replace('/');
         }

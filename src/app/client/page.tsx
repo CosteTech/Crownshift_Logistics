@@ -1,15 +1,6 @@
-export const dynamic = 'force-dynamic';
+import { redirect } from 'next/navigation';
 
-import HeroSection from "@/components/sections/hero";
-import QuoteGeneratorSection from "@/components/sections/quote-generator";
-import { OffersCarousel } from "@/components/offers-carousel";
-
-export default function Home() {
-  return (
-    <>
-      <HeroSection />
-      <OffersCarousel />
-      <QuoteGeneratorSection />
-    </>
-  );
+export default function ClientHomePage() {
+  redirect('/client/services');
 }
+

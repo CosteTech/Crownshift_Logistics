@@ -61,16 +61,34 @@ function normalizeEmail(email: string | null | undefined) {
   return (email || "").trim().toLowerCase();
 }
 
+function parseAdminEmails(raw: string | null | undefined) {
+  return (raw || "")
+    .split(",")
+    .map((email) => normalizeEmail(email))
+    .filter(Boolean);
+}
+
+export function getConfiguredAdminEmails() {
+  const configuredEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+  if (configuredEmails.length > 0) {
+    return configuredEmails;
+  }
+
+  const legacyAdminEmail = normalizeEmail(process.env.ADMIN_EMAIL);
+  return legacyAdminEmail ? [legacyAdminEmail] : [];
+}
+
+// Legacy single-admin accessor kept for compatibility with older call sites.
 export function getConfiguredAdminEmail() {
-  return normalizeEmail(process.env.ADMIN_EMAIL);
+  return getConfiguredAdminEmails()[0] || "";
 }
 
 export function isAdminEmail(email: string | null | undefined) {
-  const configuredAdminEmail = getConfiguredAdminEmail();
-  if (!configuredAdminEmail) {
+  const configuredAdminEmails = getConfiguredAdminEmails();
+  if (configuredAdminEmails.length === 0) {
     return false;
   }
-  return normalizeEmail(email) === configuredAdminEmail;
+  return configuredAdminEmails.includes(normalizeEmail(email));
 }
 
 export async function verifyAdminToken(idToken: string) {
@@ -79,8 +97,8 @@ export async function verifyAdminToken(idToken: string) {
     throw new Error("Invalid token");
   });
 
-  if (!getConfiguredAdminEmail()) {
-    throw new Error("ADMIN_EMAIL is not configured");
+  if (getConfiguredAdminEmails().length === 0) {
+    throw new Error("ADMIN_EMAILS is not configured");
   }
 
   if (decoded && isAdminEmail(decoded.email || null)) {

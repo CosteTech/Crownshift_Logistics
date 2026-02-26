@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getServices, addService, updateService, deleteService } from '@/app/actions';
 import { isServiceDeletable, isDefaultService } from '@/lib/data-models';
+import { requestApiWithAuth } from '@/lib/client/auth-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,7 +64,7 @@ export default function ServicesForm({ onSuccess }: ServicesFormProps) {
 
   const fetchServices = async () => {
     try {
-      const result = await getServices();
+      const result = await requestApiWithAuth<Service[]>('/api/services');
       if (result.success) {
         setServices(result.data || []);
       }
@@ -79,7 +79,10 @@ export default function ServicesForm({ onSuccess }: ServicesFormProps) {
   const onSubmit = async (data: ServiceFormData) => {
     try {
       if (editingId) {
-        const result = await updateService(editingId, data);
+        const result = await requestApiWithAuth(`/api/services/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+        });
         if (result.success) {
           toast({ title: 'Success', description: 'Service updated successfully' });
           setEditingId(null);
@@ -90,7 +93,10 @@ export default function ServicesForm({ onSuccess }: ServicesFormProps) {
           toast({ title: 'Error', description: result.error, variant: 'destructive' });
         }
       } else {
-        const result = await addService(data);
+        const result = await requestApiWithAuth('/api/services', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
         if (result.success) {
           toast({ title: 'Success', description: 'Service created successfully' });
           form.reset();
@@ -114,7 +120,7 @@ export default function ServicesForm({ onSuccess }: ServicesFormProps) {
     if (!confirm('Are you sure you want to delete this service?')) return;
 
     try {
-      const result = await deleteService(id);
+      const result = await requestApiWithAuth(`/api/services/${id}`, { method: 'DELETE' });
       if (result.success) {
         toast({ title: 'Success', description: 'Service deleted successfully' });
         fetchServices();

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { getOffers, getServices, addOffer, updateOffer, deleteOffer } from '@/app/actions';
+import { requestApiWithAuth } from '@/lib/client/auth-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -77,7 +77,10 @@ export default function OffersForm({ onSuccess }: OffersFormProps) {
 
   const fetchData = async () => {
     try {
-      const [offersResult, servicesResult] = await Promise.all([getOffers(), getServices()]);
+      const [offersResult, servicesResult] = await Promise.all([
+        requestApiWithAuth<Offer[]>('/api/offers'),
+        requestApiWithAuth<Service[]>('/api/services'),
+      ]);
 
       if (offersResult.success) {
         setOffers(offersResult.data || []);
@@ -97,7 +100,10 @@ export default function OffersForm({ onSuccess }: OffersFormProps) {
   const onSubmit = async (data: OfferFormData) => {
     try {
       if (editingId) {
-        const result = await updateOffer(editingId, data);
+        const result = await requestApiWithAuth(`/api/offers/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(data),
+        });
         if (result.success) {
           toast({ title: 'Success', description: 'Offer updated successfully' });
           setEditingId(null);
@@ -108,7 +114,10 @@ export default function OffersForm({ onSuccess }: OffersFormProps) {
           toast({ title: 'Error', description: result.error, variant: 'destructive' });
         }
       } else {
-        const result = await addOffer(data);
+        const result = await requestApiWithAuth('/api/offers', {
+          method: 'POST',
+          body: JSON.stringify(data),
+        });
         if (result.success) {
           toast({ title: 'Success', description: 'Offer created successfully' });
           form.reset();
@@ -132,7 +141,7 @@ export default function OffersForm({ onSuccess }: OffersFormProps) {
     if (!confirm('Are you sure you want to delete this offer?')) return;
 
     try {
-      const result = await deleteOffer(id);
+      const result = await requestApiWithAuth(`/api/offers/${id}`, { method: 'DELETE' });
       if (result.success) {
         toast({ title: 'Success', description: 'Offer deleted successfully' });
         fetchData();

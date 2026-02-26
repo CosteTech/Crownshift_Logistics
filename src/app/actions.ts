@@ -1,7 +1,5 @@
 'use server';
 
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { generateInstantQuote } from '@/ai/flows/instant-quote-generation';
 import { logger } from '@/lib/logger';
@@ -11,8 +9,6 @@ type ApiResult<T = unknown> = {
   success: boolean;
   data?: T;
   error?: string;
-  id?: string;
-  count?: number;
 };
 
 function parseApiError(payload: unknown, fallback: string) {
@@ -43,19 +39,9 @@ async function requestApi<T>(path: string, init: RequestInit = {}): Promise<ApiR
   return {
     success: true,
     data: (payload.data as T) ?? (payload as unknown as T),
-    id: typeof payload.id === 'string' ? payload.id : undefined,
-    count: typeof payload.count === 'number' ? payload.count : undefined,
   };
 }
 
-// ==================== AUTH ====================
-export async function logoutAction() {
-  const cookieStore = await cookies();
-  cookieStore.delete('__session');
-  redirect('/');
-}
-
-// ==================== QUOTE ====================
 const QuoteSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email.'),
@@ -123,144 +109,14 @@ export async function getQuote(
   }
 }
 
-// ==================== SERVICES ====================
-export async function getServices() {
-  return requestApi<any[]>('/api/services');
-}
-
 export async function getPublicServices() {
   return requestApi<any[]>('/api/services/public');
-}
-
-export async function addService(data: {
-  title: string;
-  description: string;
-  price: number;
-  isFeatured: boolean;
-}) {
-  const result = await requestApi<unknown>('/api/services', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-  return result.success ? { success: true, id: result.id } : result;
-}
-
-export async function updateService(
-  id: string,
-  data: Partial<{
-    title: string;
-    description: string;
-    price: number;
-    isFeatured: boolean;
-  }>
-) {
-  return requestApi(`/api/services/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteService(id: string) {
-  return requestApi(`/api/services/${id}`, { method: 'DELETE' });
-}
-
-// ==================== OFFERS ====================
-export async function getOffers() {
-  return requestApi<any[]>('/api/offers');
 }
 
 export async function getPublicActiveOffers() {
   return requestApi<any[]>('/api/offers/public');
 }
 
-export async function addOffer(data: {
-  serviceId: string;
-  discountPercent: number;
-  description: string;
-  isActive: boolean;
-}) {
-  const result = await requestApi<unknown>('/api/offers', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-  return result.success ? { success: true, id: result.id } : result;
-}
-
-export async function updateOffer(
-  id: string,
-  data: Partial<{
-    serviceId: string;
-    discountPercent: number;
-    description: string;
-    isActive: boolean;
-  }>
-) {
-  return requestApi(`/api/offers/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteOffer(id: string) {
-  return requestApi(`/api/offers/${id}`, { method: 'DELETE' });
-}
-
-// ==================== REVIEWS ====================
 export async function getApprovedReviews() {
   return requestApi<any[]>('/api/reviews');
-}
-
-export async function getPendingReviews() {
-  return requestApi<any[]>('/api/admin/reviews/pending');
-}
-
-// ==================== FAQS ====================
-export async function getFAQs() {
-  return requestApi<any[]>('/api/faqs');
-}
-
-export async function addFAQ(data: { question: string; answer: string }) {
-  const result = await requestApi<unknown>('/api/faqs', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-  return result.success ? { success: true, id: result.id } : result;
-}
-
-export async function updateFAQ(
-  id: string,
-  data: {
-    question?: string;
-    answer?: string;
-    isVisible?: boolean;
-    order?: number;
-  }
-) {
-  return requestApi(`/api/faqs/${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteFAQ(id: string) {
-  return requestApi(`/api/faqs/${id}`, { method: 'DELETE' });
-}
-
-// ==================== ANALYTICS ====================
-export async function getTotalCustomers() {
-  const result = await requestApi<{ totalCustomers?: number }>('/api/admin/stats');
-  if (!result.success) return result;
-  return {
-    success: true,
-    count: (result.data as { totalCustomers?: number } | undefined)?.totalCustomers ?? 0,
-  };
-}
-
-export async function getTotalBookings() {
-  const result = await requestApi<{ totalBookings?: number }>('/api/admin/stats');
-  if (!result.success) return result;
-  return {
-    success: true,
-    count: (result.data as { totalBookings?: number } | undefined)?.totalBookings ?? 0,
-  };
 }

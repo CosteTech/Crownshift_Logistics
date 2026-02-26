@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAdminAuth, isAdminEmail } from "@/firebase/admin";
+import { getAdminAuth } from "@/firebase/admin";
 
 type DecodedAdminToken = {
   uid: string;
@@ -12,12 +12,38 @@ function normalizeEmail(email: string | null | undefined) {
   return (email || "").trim().toLowerCase();
 }
 
-function requireConfiguredAdminEmail() {
-  const adminEmail = normalizeEmail(process.env.ADMIN_EMAIL);
-  if (!adminEmail) {
-    throw new Error("ADMIN_EMAIL is not configured");
+function parseAdminEmails(raw: string | null | undefined) {
+  return (raw || "")
+    .split(",")
+    .map((email) => normalizeEmail(email))
+    .filter(Boolean);
+}
+
+export function getConfiguredAdminEmails() {
+  const configuredEmails = parseAdminEmails(process.env.ADMIN_EMAILS);
+  if (configuredEmails.length > 0) {
+    return configuredEmails;
   }
-  return adminEmail;
+
+  const legacyAdminEmail = normalizeEmail(process.env.ADMIN_EMAIL);
+  return legacyAdminEmail ? [legacyAdminEmail] : [];
+}
+
+function requireConfiguredAdminEmails() {
+  const configuredEmails = getConfiguredAdminEmails();
+  if (configuredEmails.length === 0) {
+    throw new Error("ADMIN_EMAILS is not configured");
+  }
+  return configuredEmails;
+}
+
+export function isAdmin(email: string | null | undefined) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) {
+    return false;
+  }
+
+  return getConfiguredAdminEmails().includes(normalizedEmail);
 }
 
 export function extractBearerTokenFromRequest(request: Request) {
@@ -27,27 +53,13 @@ export function extractBearerTokenFromRequest(request: Request) {
 }
 
 export async function requireAdminFromIdToken(idToken: string): Promise<DecodedAdminToken> {
-  requireConfiguredAdminEmail();
+  requireConfiguredAdminEmails();
   const auth = getAdminAuth();
   const decoded = (await auth.verifyIdToken(idToken).catch(() => {
     throw new Error("Invalid token");
   })) as DecodedAdminToken;
 
-  if (!isAdminEmail(decoded.email || null)) {
-    throw new Error("Insufficient privileges");
-  }
-
-  return decoded;
-}
-
-export async function requireAdminFromSessionCookie(sessionCookie: string): Promise<DecodedAdminToken> {
-  requireConfiguredAdminEmail();
-  const auth = getAdminAuth();
-  const decoded = (await auth.verifySessionCookie(sessionCookie, true).catch(() => {
-    throw new Error("Invalid or expired session");
-  })) as DecodedAdminToken;
-
-  if (!isAdminEmail(decoded.email || null)) {
+  if (!isAdmin(decoded.email || null)) {
     throw new Error("Insufficient privileges");
   }
 
@@ -56,17 +68,9 @@ export async function requireAdminFromSessionCookie(sessionCookie: string): Prom
 
 export async function requireAdminFromRequest(request: Request): Promise<DecodedAdminToken> {
   const bearerToken = extractBearerTokenFromRequest(request);
-  if (bearerToken) {
-    return requireAdminFromIdToken(bearerToken);
+  if (!bearerToken) {
+    throw new Error("Missing authentication token");
   }
 
-  const sessionCookie = request.headers
-    .get("cookie")
-    ?.match(/(?:^|;\s*)__session=([^;]+)/)?.[1];
-  if (sessionCookie) {
-    return requireAdminFromSessionCookie(decodeURIComponent(sessionCookie));
-  }
-
-  throw new Error("Missing authentication token");
+  return requireAdminFromIdToken(bearerToken);
 }
-

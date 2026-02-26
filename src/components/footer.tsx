@@ -116,16 +116,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
-          <p>
-            &copy; {new Date().getFullYear()} Crownshift Logistics LTD. All rights reserved.
-            <Link 
-              href="/login?callbackUrl=%2Fadmin" 
-              className="text-inherit hover:text-inherit no-underline cursor-pointer group"
-              title="Admin Portal"
-            >
-              <span className="invisible group-hover:visible text-xs ml-1 text-slate-400">[admin]</span>
-            </Link>
-          </p>
+          <p>&copy; {new Date().getFullYear()} Crownshift Logistics LTD. All rights reserved.</p>
         </div>
       </div>
       </div>

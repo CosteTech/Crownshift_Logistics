@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
-import { getFAQs, addFAQ, updateFAQ, deleteFAQ } from '@/app/actions';
+import { requestApiWithAuth } from '@/lib/client/auth-api';
 import { isDefaultFAQ } from '@/lib/data-models';
 
 interface FAQ {
@@ -33,7 +33,7 @@ export default function FAQForm() {
   useEffect(() => {
     const fetchFAQs = async () => {
       try {
-        const result = await getFAQs();
+        const result = await requestApiWithAuth<FAQ[]>('/api/faqs');
         if (result.success && result.data) {
           setFAQs(result.data);
         } else {
@@ -71,7 +71,10 @@ export default function FAQForm() {
 
     setLoading(true);
     try {
-      const result = await addFAQ(formData);
+      const result = await requestApiWithAuth('/api/faqs', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      });
       if (result.success) {
         toast({
           title: 'Success',
@@ -81,7 +84,7 @@ export default function FAQForm() {
         setIsAdding(false);
 
         // Refresh FAQs
-        const refreshResult = await getFAQs();
+        const refreshResult = await requestApiWithAuth<FAQ[]>('/api/faqs');
         if (refreshResult.success && refreshResult.data) {
           setFAQs(refreshResult.data);
         }
@@ -105,7 +108,10 @@ export default function FAQForm() {
 
   const handleUpdateFAQ = async (id: string, data: Partial<FAQ>) => {
     try {
-      const result = await updateFAQ(id, data);
+      const result = await requestApiWithAuth(`/api/faqs/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
       if (result.success) {
         toast({
           title: 'Success',
@@ -114,7 +120,7 @@ export default function FAQForm() {
         setEditingId(null);
 
         // Refresh FAQs
-        const refreshResult = await getFAQs();
+        const refreshResult = await requestApiWithAuth<FAQ[]>('/api/faqs');
         if (refreshResult.success && refreshResult.data) {
           setFAQs(refreshResult.data);
         }
@@ -138,7 +144,7 @@ export default function FAQForm() {
     if (!window.confirm('Delete this FAQ?')) return;
 
     try {
-      const result = await deleteFAQ(id);
+      const result = await requestApiWithAuth(`/api/faqs/${id}`, { method: 'DELETE' });
       if (result.success) {
         toast({
           title: 'Success',
@@ -146,7 +152,7 @@ export default function FAQForm() {
         });
 
         // Refresh FAQs
-        const refreshResult = await getFAQs();
+        const refreshResult = await requestApiWithAuth<FAQ[]>('/api/faqs');
         if (refreshResult.success && refreshResult.data) {
           setFAQs(refreshResult.data);
         }

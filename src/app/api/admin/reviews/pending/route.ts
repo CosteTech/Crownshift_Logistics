@@ -25,9 +25,9 @@ export async function GET(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to fetch pending reviews";
     const status =
-      message.includes("Missing authentication token") || message.includes("Invalid") ? 401 :
+      message.includes("Missing authentication token") || message.includes("Invalid") ? 403 :
       message.includes("Insufficient privileges") ? 403 :
-      message.includes("ADMIN_EMAIL is not configured") ? 500 :
+      message.includes("ADMIN_EMAILS is not configured") ? 500 :
       500;
     return NextResponse.json({ success: false, error: message }, { status });
   }

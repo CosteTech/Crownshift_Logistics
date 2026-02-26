@@ -45,6 +45,7 @@ export const serverOnlyEnvVars = {
   MPESA_PASSKEY: process.env.MPESA_PASSKEY,
   MPESA_ENV: process.env.MPESA_ENV,
   FLW_SECRET_KEY: process.env.FLW_SECRET_KEY,
+  ADMIN_EMAILS: process.env.ADMIN_EMAILS,
   ADMIN_EMAIL: process.env.ADMIN_EMAIL,
 } as const;
 
@@ -67,7 +68,7 @@ const requiredForServer = [
   'EMAIL_PORT',
   'EMAIL_USER',
   'EMAIL_PASS',
-  'ADMIN_EMAIL',
+  'ADMIN_EMAILS',
 ] as const;
 
 /**
