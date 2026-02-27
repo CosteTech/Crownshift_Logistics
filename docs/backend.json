@@ -1,0 +1,340 @@
+{
+  "entities": {
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client of Crownshift Logistics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client, often matching the Firebase Auth UID."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the client."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the client."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the client.",
+          "format": "email"
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The phone number of the client."
+        },
+        "address": {
+          "type": "string",
+          "description": "The address of the client."
+        }
+      },
+      "required": [
+        "id",
+        "firstName",
+        "lastName",
+        "email"
+      ]
+    },
+    "Shipment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Shipment",
+      "type": "object",
+      "description": "Represents a shipment handled by Crownshift Logistics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the shipment document."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "The ID of the client this shipment belongs to. Could be a Firebase Auth UID or a temporary ID for anonymous users."
+        },
+        "clientDetails": {
+           "type": "object",
+           "description": "A snapshot of client details at the time of booking.",
+           "properties": {
+              "name": { "type": "string" },
+              "email": { "type": "string", "format": "email" }
+           }
+        },
+        "origin": {
+          "type": "string",
+          "description": "The origin address of the shipment."
+        },
+        "destination": {
+          "type": "string",
+          "description": "The destination address of the shipment."
+        },
+        "dimensions": {
+          "type": "string",
+          "description": "The dimensions of the package."
+        },
+        "weight": {
+          "type": "string",
+          "description": "The weight of the package."
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the shipment (e.g., 'Order Confirmed', 'In Transit', 'Delivered')."
+        },
+        "history": {
+          "type": "array",
+          "description": "An array of status updates for the shipment.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "status": { "type": "string" },
+              "location": { "type": "string" },
+              "date": { "type": "string", "format": "date-time" }
+            },
+            "required": ["status", "location", "date"]
+          }
+        },
+        "estimatedDeliveryDate": {
+          "type": "string",
+          "description": "The estimated delivery date of the shipment.",
+          "format": "date-time"
+        },
+        "trackingNumber": {
+          "type": "string",
+          "description": "The tracking number of the shipment."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "The date the shipment was created.",
+          "format": "date-time"
+        },
+        "quote": {
+          "type": "number",
+          "description": "The final quote for the shipment."
+        },
+        "quoteBreakdown": {
+          "type": "string",
+          "description": "The breakdown of the quote."
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "origin",
+        "destination",
+        "status",
+        "trackingNumber",
+        "creationDate"
+      ]
+    },
+    "ContactFormSubmission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ContactFormSubmission",
+      "type": "object",
+      "description": "Represents a contact form submission from a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contact form submission."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the person submitting the form."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the person submitting the form.",
+          "format": "email"
+        },
+        "message": {
+          "type": "string",
+          "description": "The message submitted through the contact form."
+        },
+        "submissionDate": {
+          "type": "string",
+          "description": "The date and time the form was submitted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "message",
+        "submissionDate"
+      ]
+    },
+    "Testimonial": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Testimonial",
+      "type": "object",
+      "description": "Represents a testimonial from a satisfied customer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the testimonial."
+        },
+        "author": {
+          "type": "string",
+          "description": "The name of the author of the testimonial."
+        },
+        "content": {
+          "type": "string",
+          "description": "The text content of the testimonial."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date the testimonial was given.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "author",
+        "content",
+        "date"
+      ]
+    },
+    "Service": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Service",
+      "type": "object",
+      "description": "Represents a service offered by Crownshift Logistics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the service."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the service."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to an image representing the service.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "imageUrl"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}/client",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client data, accessible only to the authenticated user with matching userId.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user (client)."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/shipments/{shipmentId}",
+        "definition": {
+          "entityName": "Shipment",
+          "schema": {
+            "$ref": "#/backend/entities/Shipment"
+          },
+          "description": "Stores shipment data. Publicly readable for tracking, but only writable by admins.",
+          "params": [
+            {
+              "name": "shipmentId",
+              "description": "The unique identifier of the shipment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/contactFormSubmissions/{contactFormSubmissionId}",
+        "definition": {
+          "entityName": "ContactFormSubmission",
+          "schema": {
+            "$ref": "#/backend/entities/ContactFormSubmission"
+          },
+          "description": "Stores contact form submissions. Accessible only to administrators.",
+          "params": [
+            {
+              "name": "contactFormSubmissionId",
+              "description": "The unique identifier of the contact form submission."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/testimonials/{testimonialId}",
+        "definition": {
+          "entityName": "Testimonial",
+          "schema": {
+            "$ref": "#/backend/entities/Testimonial"
+          },
+          "description": "Stores testimonials from customers. Publicly accessible.",
+          "params": [
+            {
+              "name": "testimonialId",
+              "description": "The unique identifier of the testimonial."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/services/{serviceId}",
+        "definition": {
+          "entityName": "Service",
+          "schema": {
+            "$ref": "#/backend/entities/Service"
+          },
+          "description": "Stores services offered by Crownshift Logistics. Publicly accessible.",
+          "params": [
+            {
+              "name": "serviceId",
+              "description": "The unique identifier of the service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "roles_admin",
+          "schema": {
+            "type": "object",
+            "properties": {
+              "isAdmin": { "type": "boolean" }
+            }
+          },
+          "description": "Indicates admin role based on document existence. The content doesn't matter, only that the document exists for a given user ID.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore data structure is designed to support Crownshift Logistics' client-facing website and internal administrative needs, focusing on secure data access, efficient querying, and scalability.\n\n*   **Clients:** Client data is stored under `/users/{userId}/client`, enabling path-based ownership for client data, ensuring that clients can only access their own information.\n*   **Shipments:** Shipments are now in a top-level `/shipments` collection. This is a key change to allow administrators to easily query all shipments. Security rules will ensure that regular users cannot list all shipments, but anyone can read a single shipment document if they have the tracking number (for the public tracking page). Only admins can create, update, or delete shipments.\n*   **ContactFormSubmissions:** Contact form submissions are stored in the `/contactFormSubmissions` collection, accessible only to administrators. This segregation ensures that client-submitted inquiries are managed separately and securely.\n*   **Testimonials:** Testimonials are stored in the `/testimonials` collection, publicly accessible for display on the website. This segregation allows for easy retrieval and management of testimonials.\n*   **Services:** Services are stored in the `/services` collection, publicly accessible for display on the website. This segregation allows for easy retrieval and management of services.\n*   **Admin Roles:** The `/roles_admin/{userId}` collection is used for existence-based authorization. If a document with a user's ID exists in this collection, they are considered an admin. This is a secure and efficient way to manage roles."
+  }
+}
