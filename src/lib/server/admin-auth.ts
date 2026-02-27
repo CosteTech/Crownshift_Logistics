@@ -55,8 +55,7 @@ export function extractBearerTokenFromRequest(request: Request) {
 export async function requireAdminFromIdToken(idToken: string): Promise<DecodedAdminToken> {
   requireConfiguredAdminEmails();
   const auth = getAdminAuth();
-  const decoded = (await auth.verifyIdToken(idToken).catch(() => {
-    throw new Error("Invalid token");
+  const decoded = (await auth.verifyIdToken(idToken).catch(() =>{
   })) as DecodedAdminToken;
 
   if (!isAdmin(decoded.email || null)) {
