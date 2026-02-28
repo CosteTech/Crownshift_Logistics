@@ -2,9 +2,9 @@ import "server-only";
 import * as admin from "firebase-admin";
 
 const requiredEnvVars = {
-  FIREBASE_ADMIN_PROJECT_ID: "crownshift-logistics",//FIREBASE_ADMIN_PROJECT_ID,
-  FIREBASE_ADMIN_CLIENT_EMAIL: "firebase-adminsdk-fbsvc@crownshift-logistics.iam.gserviceaccount.com",//process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-  FIREBASE_ADMIN_PRIVATE_KEY: "",//FIREBASE_ADMIN_PRIVATE_KEY,
+  FIREBASE_ADMIN_PROJECT_ID: process.env.FIREBASE_ADMIN_PROJECT_ID,
+  FIREBASE_ADMIN_CLIENT_EMAIL: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+  FIREBASE_ADMIN_PRIVATE_KEY: process.env.FIREBASE_ADMIN_PRIVATE_KEY,
 };
 
 if (process.env.NODE_ENV === "production") {
@@ -20,9 +20,9 @@ if (process.env.NODE_ENV === "production") {
 }
 
 const adminConfig: admin.ServiceAccount = {
-  projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-  privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+  projectId: requiredEnvVars.FIREBASE_ADMIN_PROJECT_ID,
+  clientEmail: requiredEnvVars.FIREBASE_ADMIN_CLIENT_EMAIL,
+  privateKey: requiredEnvVars.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n"),
 };
 
 function hasServiceAccountConfig() {
