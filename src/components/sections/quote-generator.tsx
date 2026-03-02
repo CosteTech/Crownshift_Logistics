@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
@@ -119,6 +120,8 @@ export default function QuoteGeneratorSection() {
       trackingNumber: trackingNumber,
       creationDate: serverTimestamp(),
       quote: state.quoteUSD,
+
+
       quoteBreakdown: state.breakdown,
       clientDetails: {
         name: name,
@@ -186,12 +189,15 @@ export default function QuoteGeneratorSection() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="origin">Origin</Label>
+
                       <Input id="origin" placeholder="e.g., Nairobi, Kenya" {...form.register("origin")} />
+
                       {form.formState.errors.origin && <p className="text-sm text-destructive">{form.formState.errors.origin.message}</p>}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="destination">Destination</Label>
                       <Input id="destination" placeholder="e.g., Mombasa, Kenya" {...form.register("destination")} />
+
                       {form.formState.errors.destination && <p className="text-sm text-destructive">{form.formState.errors.destination.message}</p>}
                     </div>
                   </div>

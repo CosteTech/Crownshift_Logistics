@@ -45,13 +45,17 @@ async function requestApi<T>(path: string, init: RequestInit = {}): Promise<ApiR
 const QuoteSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   email: z.string().email('Please enter a valid email.'),
+<<<<<<< HEAD
   phone: z.string().optional(),
+=======
+>>>>>>> 62a311af5d8104f8c7ddde51d7976efdbe59aa3f
   origin: z.string().min(2, 'Origin must be at least 2 characters.'),
   destination: z.string().min(2, 'Destination must be at least 2 characters.'),
   length: z.coerce.number().positive('Length must be a positive number.'),
   width: z.coerce.number().positive('Width must be a positive number.'),
   height: z.coerce.number().positive('Height must be a positive number.'),
   weight: z.coerce.number().positive('Weight must be a positive number.'),
+<<<<<<< HEAD
   packageType: z.enum(['standard', 'fragile', 'perishable', 'oversized', 'document']).optional(),
   urgency: z.enum(['standard', 'express', 'same-day']).optional(),
 });
@@ -67,27 +71,41 @@ type QuoteBreakdown = {
   insuranceFee: number;
 };
 
+=======
+});
+
+>>>>>>> 62a311af5d8104f8c7ddde51d7976efdbe59aa3f
 export type QuoteFormState = {
   message: string;
   quoteKES?: number;
   quoteUSD?: number;
+<<<<<<< HEAD
   breakdown?: QuoteBreakdown;
   estimatedDeliveryDays?: number;
   summary?: string;
   recommendations?: string;
+=======
+  breakdown?: string;
+>>>>>>> 62a311af5d8104f8c7ddde51d7976efdbe59aa3f
   quoteDetails?: z.infer<typeof QuoteSchema>;
   errors?: {
     name?: string[];
     email?: string[];
+<<<<<<< HEAD
     phone?: string[];
+=======
+>>>>>>> 62a311af5d8104f8c7ddde51d7976efdbe59aa3f
     origin?: string[];
     destination?: string[];
     length?: string[];
     width?: string[];
     height?: string[];
     weight?: string[];
+<<<<<<< HEAD
     packageType?: string[];
     urgency?: string[];
+=======
+>>>>>>> 62a311af5d8104f8c7ddde51d7976efdbe59aa3f
     _form?: string[];
   };
 };
@@ -113,9 +131,12 @@ export async function getQuote(
         quoteUSD: result.quoteUSD,
         quoteKES: result.quoteKES,
         breakdown: result.breakdown,
+<<<<<<< HEAD
         estimatedDeliveryDays: result.estimatedDeliveryDays,
         summary: result.summary,
         recommendations: result.recommendations,
+=======
+>>>>>>> 62a311af5d8104f8c7ddde51d7976efdbe59aa3f
         quoteDetails: validatedFields.data,
       };
     }
