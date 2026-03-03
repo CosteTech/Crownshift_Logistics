@@ -1,14 +1,9 @@
-import React from "react";
+import AdminShipmentsClient from './ShipmentsClient';
 
 export const metadata = {
-  title: "Admin — Shipments",
+  title: 'Admin — Shipments',
 };
 
-export default async function ShipmentsAdminPage() {
-  return (
-    <div>
-      <h1>Shipments</h1>
-      <p>View and update shipment statuses from here.</p>
-    </div>
-  );
+export default function ShipmentsAdminPage() {
+  return <AdminShipmentsClient />;
 }

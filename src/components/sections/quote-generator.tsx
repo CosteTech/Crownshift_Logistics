@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Zap, Send, CheckCircle, Copy } from "lucide-react";
+import { Loader2, Zap, Send, CheckCircle, Copy, Mail } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +22,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useFirebase } from "@/firebase/provider";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 const QuoteSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -70,7 +68,6 @@ function generateTrackingNumber(): string {
 
 export default function QuoteGeneratorSection() {
   const { toast } = useToast();
-  const { firestore } = useFirebase();
   const initialState: QuoteFormState = { message: "", errors: {} };
   const [state, formAction] = useActionState(getQuote, initialState);
 
@@ -102,50 +99,57 @@ export default function QuoteGeneratorSection() {
   }, [state, toast]);
 
   const handleBookShipment = async () => {
-    if (!state.quoteDetails || !state.quoteUSD || !state.breakdown || !firestore) return;
+    if (!state.quoteDetails || !state.quoteUSD || !state.quoteKES || !state.breakdown) return;
 
     setIsBooking(true);
-    
-    const { name, email, origin, destination, length, width, height, weight } = state.quoteDetails;
+
+    const { name, email, phone, origin, destination, length, width, height, weight, packageType, urgency } = state.quoteDetails;
     const trackingNumber = generateTrackingNumber();
 
-    const shipmentData = {
-      clientId: `anon_${Date.now()}`,
-      origin: origin,
-      destination: destination,
-      dimensions: `${length}x${width}x${height} cm`,
-      weight: `${weight} kg`,
-      status: 'Order Confirmed',
-      estimatedDeliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      trackingNumber: trackingNumber,
-      creationDate: serverTimestamp(),
-      quote: state.quoteUSD,
-
-
-      quoteBreakdown: state.breakdown,
-      clientDetails: {
-        name: name,
-        email: email,
-      },
-    };
-
     try {
-      await addDoc(collection(firestore, 'shipments'), shipmentData);
+      const res = await fetch('/api/book-shipment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trackingNumber,
+          clientDetails: { name, email, phone: phone || undefined },
+          shipmentDetails: {
+            origin,
+            destination,
+            dimensions: `${length}x${width}x${height} cm`,
+            weight: `${weight} kg`,
+            packageType: packageType || 'standard',
+            urgency: urgency || 'standard',
+          },
+          quote: {
+            quoteUSD: state.quoteUSD,
+            quoteKES: state.quoteKES,
+            breakdown: state.breakdown,
+            estimatedDeliveryDays: state.estimatedDeliveryDays,
+            summary: state.summary,
+            recommendations: state.recommendations,
+          },
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to book shipment.');
+      }
+
       setBookingResult({
         success: true,
         message: 'Shipment booked successfully!',
-        trackingNumber: trackingNumber,
+        trackingNumber: data.trackingNumber || trackingNumber,
       });
     } catch (error) {
-      console.error("Error booking shipment:", error);
-      setBookingResult({
-        success: false,
-        message: "Failed to book shipment. Please try again.",
-      });
+      console.error('Error booking shipment:', error);
+      setBookingResult({ success: false, message: 'Failed to book shipment. Please try again.' });
       toast({
-        variant: "destructive",
-        title: "Booking Failed",
-        description: "Could not save shipment details. Please try again.",
+        variant: 'destructive',
+        title: 'Booking Failed',
+        description: error instanceof Error ? error.message : 'Could not complete booking. Please try again.',
       });
     } finally {
       setIsBooking(false);
@@ -325,17 +329,20 @@ export default function QuoteGeneratorSection() {
               <CheckCircle className="h-16 w-16 text-green-500" />
             </div>
             <AlertDialogTitle className="text-center">Shipment Booked Successfully!</AlertDialogTitle>
-            <AlertDialogDescription className="text-center">
-              Your tracking number is: <br />
-              <strong className="text-lg text-primary">{bookingResult?.trackingNumber}</strong>
-              <br />
-              You can use this to track your shipment on our website.
+            <AlertDialogDescription className="text-center space-y-3">
+              <span className="block">Your tracking number is:</span>
+              <strong className="block text-xl text-primary tracking-widest">{bookingResult?.trackingNumber}</strong>
+              <span className="block text-sm">Use this to track your shipment on our website.</span>
+              <span className="flex items-center justify-center gap-2 text-sm text-muted-foreground mt-2">
+                <Mail className="h-4 w-4 text-green-500" />
+                A confirmation email with your full quote has been sent to your inbox.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <Button variant="outline" onClick={handleCopyToClipboard}>
               <Copy className="mr-2 h-4 w-4" />
-              Copy
+              Copy Tracking No.
             </Button>
             <AlertDialogAction onClick={() => setBookingResult(null)}>Close</AlertDialogAction>
           </AlertDialogFooter>

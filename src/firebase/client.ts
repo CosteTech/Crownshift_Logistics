@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 export const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
+  apiKey: "AIzaSyCOzss89iGqGt8OSIo3E6G5QaCzdMnFixQ",//NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: "crownshift-logistics.firebaseapp.com",//process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: "crownshift-logistics",//NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: "crownshift-logistics.firebasestorage.app",//NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: "845576626823", //NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: "1:845576626823:web:77174450048712275415",//NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: "G-95296YQ30L",//NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
 if (!firebaseConfig.apiKey) {
